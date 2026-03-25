@@ -199,6 +199,7 @@ function CreateDeck() {
                                 >
                                     <span className="text-sm text-gray-900">{card.front}</span>
                                     <span className="text-sm text-gray-400">{card.back}</span>
+                                    <button className="button" onclick="myFunction()"></button>
                                 </div>
                             ))}
                         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getCards, updateProgress } from '../lib/api'
 
@@ -28,27 +28,29 @@ function Study() {
         }
         window.addEventListener('keydown', handleKey)
         return () => window.removeEventListener('keydown', handleKey)
-    }, [flipped, idx, cards])
+    }, [handleAnswer])
 
-    function handleAnswer(correct) {
-        if (!flipped) return
-        const card = cards[idx]
+    const handleAnswer = useCallback((correct) => {
+      if (!flipped) return
+      const card = cards[idx]
 
-        updateProgress(card.id, correct)
+      updateProgress(card.id, correct)
 
-        setStats(prev => ({
-            correct: correct ? prev.correct + 1 : prev.correct,
-            wrong: !correct ? prev.wrong + 1 : prev.wrong,
-            streak: correct ? prev.streak + 1 : 0
-        }))
+      setStats(prev => ({
+        correct: correct ? prev.correct + 1 : prev.correct,
+        wrong: !correct ? prev.wrong + 1 : prev.wrong,
+        streak: correct ? prev.streak + 1 : 0
+      }))
 
-        if (!correct) {
-            setCards(prev => [...prev, card])
-        }
+      if (!correct) {
+        setCards(prev => [...prev, card])
+      }
 
+      setFlipped(false)
+      setTimeout(() => {
         setIdx(prev => prev + 1)
-        setFlipped(false)
-    }
+      }, 300)
+    }, [flipped, cards, idx])
 
     if (loading) return (
         <div className="flex items-center justify-center h-64 text-gray-400 text-sm">

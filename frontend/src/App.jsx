@@ -11,8 +11,9 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 
 function ProtectedRoute({ children }) {
-    const { token } = useStore()
-    if (!token) return <Navigate to="/login" />
+    const { user, isLoading } = useStore()
+    if (isLoading) return null
+    if (!user) return <Navigate to="/login" />
     return children
 }
 

@@ -1,17 +1,18 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 from database import get_db
 from models.user import User
+from supabase import create_client
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = "HS256"
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 bearer_scheme = HTTPBearer()
 
 
@@ -20,16 +21,28 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     token = credentials.credentials
+
+    # Verify token with Supabase
     try:
-        payload = jwt.decode(token, str(SECRET_KEY), algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if not user_id:
+        response = supabase.auth.get_user(token)
+        supabase_user = response.user
+        if not supabase_user:
             raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
+    except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    user = db.query(User).filter(User.id == user_id).first()
+    # Find or create user in our database
+    user = db.query(User).filter(User.email == supabase_user.email).first()
+
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        user = User(
+            id=supabase_user.id,
+            email=supabase_user.email,
+            username=supabase_user.email.split("@")[0],
+            hashed_password="",
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
     return user

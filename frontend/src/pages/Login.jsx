@@ -1,24 +1,31 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import useStore from '../store/index'
-import { login } from '../lib/api'
+import { supabase } from '../lib/supabase'
 
 function Login() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
-    const { login: storeLogin } = useStore()
+    const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
 
     async function handleSubmit(e) {
         e.preventDefault()
-        try {
-            const res = await login(email, password)
-            storeLogin(res.data.token, res.data.user)
-            navigate('/')
-        } catch (err) {
-            setError('Invalid email or password')
+        setLoading(true)
+        setError('')
+
+        const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        })
+
+        if (error) {
+            setError(error.message)
+            setLoading(false)
+            return
         }
+
+        navigate('/')
     }
 
     return (
@@ -56,9 +63,10 @@ function Login() {
                     </div>
                     <button
                         type="submit"
-                        className="w-full bg-gray-900 text-white rounded-lg py-2 text-sm font-medium hover:bg-gray-700 transition-colors mt-2"
+                        disabled={loading}
+                        className="w-full bg-gray-900 text-white rounded-lg py-2 text-sm font-medium hover:bg-gray-700 transition-colors mt-2 disabled:opacity-50"
                     >
-                        Sign in
+                        {loading ? 'Signing in...' : 'Sign in'}
                     </button>
                 </form>
 

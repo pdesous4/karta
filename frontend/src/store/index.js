@@ -1,36 +1,31 @@
 import { create } from 'zustand'
-import { getMe } from '../lib/api'
+import { supabase } from '../lib/supabase'
 
 const useStore = create((set) => ({
     user: null,
-    token: localStorage.getItem('token'),
+    session: null,
     isLoading: true,
 
-    setUser: (user) => set({ user }),
-
-    login: (token, user) => {
-        localStorage.setItem('token', token)
-        set({ token, user })
-    },
-
-    logout: () => {
-        localStorage.removeItem('token')
-        set({ token: null, user: null })
-    },
-
     loadUser: async () => {
-        const token = localStorage.getItem('token')
-        if (!token) {
-            set({ isLoading: false })
-            return
-        }
-        try {
-            const res = await getMe()
-            set({ user: res.data, isLoading: false })
-        } catch {
-            localStorage.removeItem('token')
-            set({ token: null, user: null, isLoading: false })
-        }
+        const { data: { session } } = await supabase.auth.getSession()
+        set({
+            session,
+            user: session?.user ?? null,
+            isLoading: false
+        })
+
+        // Listen for auth changes
+        supabase.auth.onAuthStateChange((_event, session) => {
+            set({
+                session,
+                user: session?.user ?? null
+            })
+        })
+    },
+
+    logout: async () => {
+        await supabase.auth.signOut()
+        set({ user: null, session: null })
     }
 }))
 

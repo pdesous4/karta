@@ -1,25 +1,35 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import useStore from '../store/index'
-import { register } from '../lib/api'
+import { supabase } from '../lib/supabase'
 
 function Register() {
     const [email, setEmail] = useState('')
-    const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
+    const [username, setUsername] = useState('')
     const [error, setError] = useState('')
-    const { login: storeLogin } = useStore()
+    const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
 
     async function handleSubmit(e) {
         e.preventDefault()
-        try {
-            const res = await register(email, username, password)
-            storeLogin(res.data.token, res.data.user)
-            navigate('/')
-        } catch (err) {
-            setError(err.response?.data?.detail || 'Something went wrong')
+        setLoading(true)
+        setError('')
+
+        const { error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: { username }
+            }
+        })
+
+        if (error) {
+            setError(error.message)
+            setLoading(false)
+            return
         }
+
+        navigate('/')
     }
 
     return (
@@ -36,16 +46,6 @@ function Register() {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <div>
-                        <label className="text-sm font-medium text-gray-700 block mb-1">Email</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={e => setEmail(e.target.value)}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
-                            placeholder="you@example.com"
-                        />
-                    </div>
-                    <div>
                         <label className="text-sm font-medium text-gray-700 block mb-1">Username</label>
                         <input
                             type="text"
@@ -53,6 +53,16 @@ function Register() {
                             onChange={e => setUsername(e.target.value)}
                             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
                             placeholder="yourname"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-1">Email</label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
+                            placeholder="you@example.com"
                         />
                     </div>
                     <div>
@@ -67,9 +77,10 @@ function Register() {
                     </div>
                     <button
                         type="submit"
-                        className="w-full bg-gray-900 text-white rounded-lg py-2 text-sm font-medium hover:bg-gray-700 transition-colors mt-2"
+                        disabled={loading}
+                        className="w-full bg-gray-900 text-white rounded-lg py-2 text-sm font-medium hover:bg-gray-700 transition-colors mt-2 disabled:opacity-50"
                     >
-                        Create account
+                        {loading ? 'Creating account...' : 'Create account'}
                     </button>
                 </form>
 

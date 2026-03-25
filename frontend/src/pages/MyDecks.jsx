@@ -60,6 +60,12 @@ function MyDecks() {
                                 >
                                     Study
                                 </Link>
+                                <Link
+                                    to={`/create/${deck.id}`}
+                                    className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                                >
+                                    Edit
+                                </Link>
                                 <button
                                     onClick={() => handleDelete(deck.id)}
                                     className="text-sm px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
