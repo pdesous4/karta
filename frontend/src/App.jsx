@@ -10,6 +10,7 @@ import MyDecks from './pages/MyDecks'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Saved from './pages/Saved'
+import EditDeck from './pages/EditDeck'
 
 function ProtectedRoute({ children }) {
     const { user, isLoading } = useStore()
@@ -42,6 +43,7 @@ function App() {
                                     <Route path="/create" element={<CreateDeck />} />
                                     <Route path="/mydecks" element={<MyDecks />} />
                                     <Route path="/saved" element={<Saved />} />
+                                    <Route path="/edit/:deckId" element={<EditDeck />} />
                                 </Routes>
                             </main>
                         </div>

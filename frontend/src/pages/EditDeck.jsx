@@ -1,23 +1,21 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { createDeck, addCard } from "../lib/api";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  getDeck,
+  getCards,
+  updateDeck,
+  addCard,
+  updateCard,
+  deleteCard,
+} from "../lib/api";
 import DeckFormFields from "../components/DeckFormFields";
 import TemplateToggles from "../components/TemplateToggles";
 import CardList, { EMPTY_CARD } from "../components/CardList";
 
-const DEFAULT_TEMPLATE = {
-  show_romanization: true,
-  show_context: true,
-  show_definition: false,
-  show_example: false,
-  show_image: false,
-  front_audio: false,
-  back_audio: true,
-  back_audio_slow: true,
-};
-
-function CreateDeck() {
+function EditDeck() {
+  const { deckId } = useParams();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [deckForm, setDeckForm] = useState({
@@ -26,8 +24,25 @@ function CreateDeck() {
     language: "",
     is_public: false,
   });
-  const [template, setTemplate] = useState({ ...DEFAULT_TEMPLATE });
-  const [cards, setCards] = useState([{ ...EMPTY_CARD }]);
+  const [template, setTemplate] = useState({});
+  const [cards, setCards] = useState([]);
+
+  useEffect(() => {
+    Promise.all([getDeck(deckId), getCards(deckId)])
+      .then(([deckRes, cardsRes]) => {
+        const d = deckRes.data;
+        setDeckForm({
+          title: d.title,
+          description: d.description || "",
+          language: d.language,
+          is_public: d.is_public,
+        });
+        setTemplate(d.template || {});
+        setCards(cardsRes.data);
+      })
+      .catch(() => setError("Failed to load deck"))
+      .finally(() => setLoading(false));
+  }, [deckId]);
 
   function handleDeckChange(field, value) {
     setDeckForm((p) => ({ ...p, [field]: value }));
@@ -47,7 +62,12 @@ function CreateDeck() {
     setCards((prev) => [...prev, { ...EMPTY_CARD }]);
   }
 
-  function handleRemoveCard(index) {
+  async function handleRemoveCard(index) {
+    const card = cards[index];
+    if (card.id) {
+      if (!confirm("Delete this card?")) return;
+      await deleteCard(card.id);
+    }
     setCards((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -56,27 +76,38 @@ function CreateDeck() {
       setError("Title and language are required");
       return;
     }
-    const validCards = cards.filter((c) => c.front && c.back);
-    if (validCards.length === 0) {
-      setError("Add at least one card with front and back");
-      return;
-    }
     setSaving(true);
     setError("");
     try {
-      const res = await createDeck({ ...deckForm, template });
-      await Promise.all(validCards.map((card) => addCard(res.data.id, card)));
+      await updateDeck(deckId, { ...deckForm, template });
+      await Promise.all(
+        cards
+          .filter((c) => c.front && c.back)
+          .map((card) =>
+            card.id ? updateCard(card.id, card) : addCard(deckId, card),
+          ),
+      );
       navigate("/mydecks");
     } catch {
-      setError("Failed to create deck");
+      setError("Failed to save changes");
     } finally {
       setSaving(false);
     }
   }
 
+  if (loading) return <div className="text-gray-400 text-sm">Loading...</div>;
+
   return (
     <div className="max-w-xl">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-8">Create Deck</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-2xl font-semibold text-gray-900">Edit Deck</h1>
+        <button
+          onClick={() => navigate("/mydecks")}
+          className="text-sm text-gray-400 hover:text-gray-700 transition-colors"
+        >
+          ← Back
+        </button>
+      </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg p-3 mb-6">
@@ -99,10 +130,10 @@ function CreateDeck() {
         disabled={saving}
         className="w-full bg-gray-900 text-white rounded-lg py-2 text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
       >
-        {saving ? "Creating..." : "Create Deck"}
+        {saving ? "Saving..." : "Save Changes"}
       </button>
     </div>
   );
 }
 
-export default CreateDeck;
+export default EditDeck;

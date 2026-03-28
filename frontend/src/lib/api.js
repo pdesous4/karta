@@ -50,8 +50,8 @@ export const generateAudio = (text, language) =>
   api.post("/audio/generate", { text, language });
 
 // Saved Decks
-export const saveDeck      = (id) => api.post(`/decks/${id}/save`)
-export const isSaved       = (id) => api.get(`/decks/${id}/saved`)
-export const getSavedDecks = ()   => api.get('/saved')
+export const saveDeck = (id) => api.post(`/decks/${id}/save`);
+export const isSaved = (id) => api.get(`/decks/${id}/saved`);
+export const getSavedDecks = () => api.get("/saved");
 
 export default api;
