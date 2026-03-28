@@ -14,24 +14,26 @@ router = APIRouter(tags=["progress"])
 
 class AnswerRequest(BaseModel):
     card_id: str
-    correct: bool
+    grade: int # 0=Again, 1=Hard, 2=Good, 3=Easy
 
 
 @router.post("/progress")
 def update_progress(
     body: AnswerRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     card = db.query(Card).filter(Card.id == body.card_id).first()
     if not card:
         raise HTTPException(status_code=404, detail="Card not found")
 
-    progress = (
-        db.query(Progress)
-        .filter(Progress.card_id == body.card_id, Progress.user_id == current_user.id)
-        .first()
-    )
+    if body.grade not in [0, 1, 2, 3]:
+        raise HTTPException(status_code=400, detail="Grade must be 0, 1, 2, or 3")
+
+    progress = db.query(Progress).filter(
+        Progress.card_id == body.card_id,
+        Progress.user_id == current_user.id
+    ).first()
 
     if not progress:
         progress = Progress(
@@ -42,26 +44,27 @@ def update_progress(
             streak=0,
             ease_factor=2.5,
             interval=1,
-            due_at=datetime.utcnow(),
+            due_at=datetime.utcnow()
         )
         db.add(progress)
 
     next_review = calculate_next_review(
-        correct=body.correct,
+        grade=body.grade,
         interval=progress.interval,
-        ease_factor=progress.ease_factor,
+        ease_factor=progress.ease_factor
     )
 
-    if body.correct:
-        progress.correct += 1
-        progress.streak += 1
+    if body.grade == 0:
+        progress.wrong  += 1
+        progress.streak  = 0
     else:
-        progress.wrong += 1
-        progress.streak = 0
+        progress.correct += 1
+        progress.streak  += 1
 
-    progress.interval = next_review["interval"]
+    progress.interval    = next_review["interval"]
     progress.ease_factor = next_review["ease_factor"]
-    progress.due_at = next_review["due_at"]
+    progress.due_at      = next_review["due_at"]
+    progress.last_grade  = body.grade
 
     db.commit()
     db.refresh(progress)

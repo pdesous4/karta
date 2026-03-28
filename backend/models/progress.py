@@ -10,6 +10,7 @@ class Progress(Base):
     card_id = Column(String, ForeignKey("cards.id"), nullable=False)
     correct = Column(Integer, nullable=False, default=0)
     wrong = Column(Integer, nullable=False, default=0)
+    last_grade = Column(Integer, nullable=True)
     ease_factor = Column(Float, nullable=False, default=2.5)  # Default ease factor for SM-2 algorithm
     interval = Column(Integer, nullable=False, default=1)  # Interval in days
     streak = Column(Integer, nullable=False, default=0)  # Current streak of correct answers

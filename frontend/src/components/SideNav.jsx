@@ -13,6 +13,7 @@ function SideNav() {
     const links = [
         { to: '/',         label: 'Home'        },
         { to: '/browse',   label: 'Browse'      },
+        { to: '/saved',    label: 'Saved'       },
         { to: '/mydecks',  label: 'My Decks'    },
         { to: '/create',   label: 'Create Deck' },
     ]

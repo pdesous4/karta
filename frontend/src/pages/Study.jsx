@@ -35,19 +35,21 @@ function Study() {
   const template = deck?.template || DEFAULT_TEMPLATE;
 
   const handleAnswer = useCallback(
-    (correct) => {
+    (grade) => {
       if (!flipped) return;
       const card = cards[idx];
 
-      updateProgress(card.id, correct);
+      updateProgress(card.id, grade);
 
       setStats((prev) => ({
-        correct: correct ? prev.correct + 1 : prev.correct,
-        wrong: !correct ? prev.wrong + 1 : prev.wrong,
-        streak: correct ? prev.streak + 1 : 0,
+        correct: grade > 0 ? prev.correct + 1 : prev.correct,
+        wrong: grade === 0 ? prev.wrong + 1 : prev.wrong,
+        streak: grade > 0 ? prev.streak + 1 : 0,
       }));
 
-      if (!correct) setCards((prev) => [...prev, card]);
+      if (grade === 0) {
+        setCards((prev) => [...prev, card]);
+      }
 
       setFlipped(false);
       setTimeout(() => setIdx((prev) => prev + 1), 200);
@@ -61,8 +63,12 @@ function Study() {
         e.preventDefault();
         setFlipped((f) => !f);
       }
-      if (e.key === "ArrowRight" && flipped) handleAnswer(true);
-      if (e.key === "ArrowLeft" && flipped) handleAnswer(false);
+      if (flipped) {
+        if (e.key === "1") handleAnswer(0); // Again
+        if (e.key === "2") handleAnswer(1); // Hard
+        if (e.key === "3") handleAnswer(2); // Good
+        if (e.key === "4") handleAnswer(3); // Easy
+      }
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -155,186 +161,187 @@ function Study() {
       {/* Card */}
       <div
         className="w-full cursor-pointer"
-        style={{ perspective: "1200px" }}
         onClick={() => setFlipped((f) => !f)}
       >
-        <div
-          className="relative w-full transition-transform duration-500"
-          style={{
-            transformStyle: "preserve-3d",
-            transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-            minHeight: "280px",
-          }}
-        >
-          {/* ── Front ── */}
-          <div
-            className="absolute inset-0 bg-gray-50 border border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-3 p-8"
-            style={{ backfaceVisibility: "hidden" }}
-          >
-            <span className="text-xs font-semibold tracking-widest uppercase text-gray-400">
-              {deck?.language || "English"}
+        <div className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-8 flex flex-col items-center gap-4 transition-all duration-300">
+          {/* Front — always visible */}
+          <span className="text-xs font-semibold tracking-widest uppercase text-gray-400">
+            {deck?.language || "Front"}
+          </span>
+
+          <span className="text-3xl font-light text-gray-900 text-center">
+            {card.front}
+          </span>
+
+          {template.show_context && card.context && (
+            <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+              {card.context}
             </span>
+          )}
 
-            <span className="text-3xl font-light text-gray-900 text-center">
-              {card.front}
-            </span>
-
-            {template.show_context && card.context && (
-              <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-                {card.context}
-              </span>
-            )}
-
-            {template.front_audio && card.audio_url && (
-              <div className="flex gap-2 mt-1">
+          {template.front_audio && card.audio_url && (
+            <div className="flex gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  playAudio(card.audio_url);
+                }}
+                className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-sm"
+              >
+                🔊
+              </button>
+              {template.back_audio_slow && card.audio_slow_url && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    playAudio(card.audio_url);
+                    playAudio(card.audio_slow_url);
                   }}
                   className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-sm"
-                  title="Play audio"
                 >
-                  🔊
+                  🐢
                 </button>
-                {template.back_audio_slow && card.audio_slow_url && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      playAudio(card.audio_slow_url);
-                    }}
-                    className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-sm"
-                    title="Slow audio"
-                  >
-                    🐢
-                  </button>
-                )}
-              </div>
-            )}
+              )}
+            </div>
+          )}
 
-            <span className="text-xs text-gray-300 absolute bottom-5">
+          {!flipped && (
+            <span className="text-xs text-gray-300 mt-2">
               tap to reveal · space
             </span>
-          </div>
+          )}
 
-          {/* ── Back ── */}
-          <div
-            className="absolute inset-0 bg-gray-50 border border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-3 p-8"
-            style={{
-              backfaceVisibility: "hidden",
-              transform: "rotateY(180deg)",
-            }}
-          >
-            <span className="text-xs font-semibold tracking-widest uppercase text-gray-400">
-              Answer
-            </span>
-
-            <span className="text-3xl font-light text-gray-900 text-center">
-              {card.back}
-            </span>
-
-            {template.show_romanization && card.romanization && (
-              <span className="text-sm text-gray-400 italic">
-                {card.romanization}
+          {/* Back — revealed on expand */}
+          {flipped && (
+            <div className="w-full flex flex-col items-center gap-4 pt-4 border-t border-gray-200 mt-2">
+              <span className="text-xs font-semibold tracking-widest uppercase text-gray-400">
+                Answer
               </span>
-            )}
 
-            {template.show_definition && card.definition && (
-              <div className="w-full border-t border-gray-100 pt-3 mt-1 text-center">
-                <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
-                  Definition
-                </p>
-                <p className="text-sm text-gray-600">{card.definition}</p>
-              </div>
-            )}
+              <span className="text-3xl font-light text-gray-900 text-center">
+                {card.back}
+              </span>
 
-            {template.show_example && card.example && (
-              <div className="w-full border-t border-gray-100 pt-3 mt-1 text-center">
-                <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
-                  Example
-                </p>
-                <p className="text-sm text-gray-600 italic">"{card.example}"</p>
-                {card.example_translation && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    {card.example_translation}
+              {template.show_romanization && card.romanization && (
+                <span className="text-sm text-gray-400 italic">
+                  {card.romanization}
+                </span>
+              )}
+
+              {template.show_definition && card.definition && (
+                <div className="w-full border-t border-gray-100 pt-3 text-center">
+                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
+                    Definition
                   </p>
-                )}
-                {card.example_audio_url && (
+                  <p className="text-sm text-gray-600">{card.definition}</p>
+                </div>
+              )}
+
+              {template.show_example && card.example && (
+                <div className="w-full border-t border-gray-100 pt-3 text-center">
+                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
+                    Example
+                  </p>
+                  <p className="text-sm text-gray-600 italic">
+                    "{card.example}"
+                  </p>
+                  {card.example_translation && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      {card.example_translation}
+                    </p>
+                  )}
+                  {card.example_audio_url && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playAudio(card.example_audio_url);
+                      }}
+                      className="mt-2 w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-xs mx-auto"
+                    >
+                      🔊
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {template.show_image && card.image_url && (
+                <img
+                  src={card.image_url}
+                  alt={card.back}
+                  className="w-24 h-24 object-cover rounded-lg border border-gray-100"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
+
+              {template.back_audio && card.audio_url && (
+                <div className="flex gap-2">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      playAudio(card.example_audio_url);
+                      playAudio(card.audio_url);
                     }}
-                    className="mt-2 w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-xs mx-auto"
-                    title="Play example"
+                    className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-sm"
+                    title="Normal speed"
                   >
                     🔊
                   </button>
-                )}
-              </div>
-            )}
-
-            {template.show_image && card.image_url && (
-              <img
-                src={card.image_url}
-                alt={card.back}
-                className="w-24 h-24 object-cover rounded-lg border border-gray-100"
-                onClick={(e) => e.stopPropagation()}
-              />
-            )}
-
-            {template.back_audio && card.audio_url && (
-              <div className="flex gap-2 mt-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    playAudio(card.audio_url);
-                  }}
-                  className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-sm"
-                  title="Normal speed"
-                >
-                  🔊
-                </button>
-                {template.back_audio_slow && card.audio_slow_url && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      playAudio(card.audio_slow_url);
-                    }}
-                    className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-sm"
-                    title="Slow speed"
-                  >
-                    🐢
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+                  {template.back_audio_slow && card.audio_slow_url && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playAudio(card.audio_slow_url);
+                      }}
+                      className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-sm"
+                      title="Slow speed"
+                    >
+                      🐢
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Answer buttons */}
       <div
-        className={`flex gap-4 transition-opacity duration-200 ${flipped ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        className={`w-full flex gap-3 transition-opacity duration-200 ${flipped ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       >
         <button
-          onClick={() => handleAnswer(false)}
-          className="px-8 py-3 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors"
+          onClick={() => handleAnswer(0)}
+          className="flex-1 py-3 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors flex flex-col items-center gap-0.5"
         >
-          ✗ Missed
+          <span>Again</span>
+          <span className="text-xs opacity-50">1 day</span>
         </button>
         <button
-          onClick={() => handleAnswer(true)}
-          className="px-8 py-3 rounded-xl border border-green-200 text-green-600 text-sm font-medium hover:bg-green-50 transition-colors"
+          onClick={() => handleAnswer(1)}
+          className="flex-1 py-3 rounded-xl border border-orange-200 text-orange-500 text-sm font-medium hover:bg-orange-50 transition-colors flex flex-col items-center gap-0.5"
         >
-          ✓ Got it
+          <span>Hard</span>
+          <span className="text-xs opacity-50">· 1</span>
+        </button>
+        <button
+          onClick={() => handleAnswer(2)}
+          className="flex-1 py-3 rounded-xl border border-green-200 text-green-600 text-sm font-medium hover:bg-green-50 transition-colors flex flex-col items-center gap-0.5"
+        >
+          <span>Good</span>
+          <span className="text-xs opacity-50">· 2.5</span>
+        </button>
+        <button
+          onClick={() => handleAnswer(3)}
+          className="flex-1 py-3 rounded-xl border border-blue-200 text-blue-500 text-sm font-medium hover:bg-blue-50 transition-colors flex flex-col items-center gap-0.5"
+        >
+          <span>Easy</span>
+          <span className="text-xs opacity-50">· 1.3</span>
         </button>
       </div>
 
-      <p className="text-xs text-gray-300">← miss · space to flip · got it →</p>
+      <p className="text-xs text-gray-300">
+        1 again · 2 hard · 3 good · 4 easy
+      </p>
     </div>
   );
 }
 
 export default Study;
-
