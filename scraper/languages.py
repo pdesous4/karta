@@ -1,4 +1,4 @@
-LANGUAGES = ["greek", "spanish"]
+LANGUAGES = ["greek", "spanish", "french"]
 
 TOPICS = [
     "basics",

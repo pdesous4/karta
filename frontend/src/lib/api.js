@@ -34,4 +34,14 @@ export const updateProgress = (card_id, correct) =>
 export const getDueCards = () => api.get('/progress/due')
 export const getAllProgress = () => api.get('/progress')
 
+// Ratings
+export const rateDeck    = (id, rating) => api.post(`/decks/${id}/rate`, { rating })
+export const getDeckRating  = (id) => api.get(`/decks/${id}/rating`)
+export const getMyRating    = (id) => api.get(`/decks/${id}/myrating`)
+export const getBulkRatings = (ids) => api.get(`/ratings/bulk?deck_ids=${ids.join(',')}`)
+
+// Audio
+export const generateAudio = (text, language) =>
+    api.post('/audio/generate', { text, language })
+
 export default api

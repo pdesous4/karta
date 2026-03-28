@@ -17,7 +17,7 @@ function Home() {
     return (
         <div className="max-w-3xl">
             <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-                Welcome back{user ? `, ${user.username}` : ''}
+                Welcome back{user ? `, ${user.user_metadata.username}` : ''}
             </h1>
             <p className="text-gray-400 text-sm mb-10">
                 Ready to study?

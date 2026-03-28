@@ -21,3 +21,6 @@ Thumbs.db
 # Build
 *.egg-info/
 .pytest_cache/
+.env.local
+*.env.local
+supabase/

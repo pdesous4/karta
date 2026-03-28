@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from models import user, deck, card, progress
-from routes import decks, cards, progress as progress_router
+from models import user, deck, card, progress, rating
+from routes import decks, cards, progress as progress_router, ratings, audio
+from routes.ratings import DeckRating
 
 Base.metadata.create_all(bind=engine)
 
@@ -19,6 +20,8 @@ app.add_middleware(
 app.include_router(decks.router)
 app.include_router(cards.router)
 app.include_router(progress_router.router)
+app.include_router(ratings.router)
+app.include_router(audio.router)
 
 
 @app.get("/")

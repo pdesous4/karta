@@ -10,25 +10,36 @@ from typing import Optional
 
 router = APIRouter(tags=["cards"])
 
-
-# ── Schemas ──────────────────────────────────────────────
 class CardCreate(BaseModel):
-    front: str
-    back: str
-    romanization: Optional[str] = None
-    audio_url: Optional[str] = None
-    image_url: Optional[str] = None
+    front:               str
+    back:                str
+    romanization:        Optional[str] = None
+    context:             Optional[str] = None
+    definition:          Optional[str] = None
+    example:             Optional[str] = None
+    example_translation: Optional[str] = None
+    example_audio_url:   Optional[str] = None
+    audio_url:           Optional[str] = None
+    audio_slow_url:      Optional[str] = None
+    image_url:           Optional[str] = None
+    notes:               Optional[str] = None
 
 
 class CardUpdate(BaseModel):
-    front: Optional[str] = None
-    back: Optional[str] = None
-    romanization: Optional[str] = None
-    audio_url: Optional[str] = None
-    image_url: Optional[str] = None
+    front:               Optional[str] = None
+    back:                Optional[str] = None
+    romanization:        Optional[str] = None
+    context:             Optional[str] = None
+    definition:          Optional[str] = None
+    example:             Optional[str] = None
+    example_translation: Optional[str] = None
+    example_audio_url:   Optional[str] = None
+    audio_url:           Optional[str] = None
+    audio_slow_url:      Optional[str] = None
+    image_url:           Optional[str] = None
+    notes:               Optional[str] = None
 
 
-# ── Routes ───────────────────────────────────────────────
 @router.get("/decks/{deck_id}/cards")
 def get_cards(deck_id: str, db: Session = Depends(get_db)):
     deck = db.query(Deck).filter(Deck.id == deck_id).first()
@@ -51,14 +62,7 @@ def add_card(
     if deck.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not your deck")
 
-    card = Card(
-        deck_id=deck_id,
-        front=body.front,
-        back=body.back,
-        romanization=body.romanization,
-        audio_url=body.audio_url,
-        image_url=body.image_url,
-    )
+    card = Card(**body.model_dump(), deck_id=deck_id)
     db.add(card)
     db.commit()
     db.refresh(card)

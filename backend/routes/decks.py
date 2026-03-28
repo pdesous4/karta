@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
-from models.deck import Deck
+from models.deck import Deck, DEFAULT_TEMPLATE
 from models.user import User
 from dependencies import get_current_user
 from pydantic import BaseModel
@@ -10,22 +10,22 @@ from typing import Optional
 router = APIRouter(prefix="/decks", tags=["decks"])
 
 
-# ── Schemas ──────────────────────────────────────────────
 class DeckCreate(BaseModel):
-    title: str
-    description: Optional[str] = None
-    language: str
-    is_public: bool = False
+    title:       str
+    description: Optional[str]  = None
+    language:    str
+    is_public:   bool            = False
+    template:    Optional[dict]  = None
 
 
 class DeckUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    language: Optional[str] = None
-    is_public: Optional[bool] = None
+    title:       Optional[str]  = None
+    description: Optional[str]  = None
+    language:    Optional[str]  = None
+    is_public:   Optional[bool] = None
+    template:    Optional[dict] = None
 
 
-# ── Routes ───────────────────────────────────────────────
 @router.get("/")
 def get_public_decks(db: Session = Depends(get_db)):
     decks = db.query(Deck).filter(Deck.is_public == True).all()
@@ -34,7 +34,8 @@ def get_public_decks(db: Session = Depends(get_db)):
 
 @router.get("/mine")
 def get_my_decks(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     decks = db.query(Deck).filter(Deck.user_id == current_user.id).all()
     return decks
@@ -55,11 +56,12 @@ def create_deck(
     db: Session = Depends(get_db),
 ):
     deck = Deck(
-        user_id=current_user.id,
-        title=body.title,
-        description=body.description,
-        language=body.language,
-        is_public=body.is_public,
+        user_id     = current_user.id,
+        title       = body.title,
+        description = body.description,
+        language    = body.language,
+        is_public   = body.is_public,
+        template    = body.template or DEFAULT_TEMPLATE,
     )
     db.add(deck)
     db.commit()
