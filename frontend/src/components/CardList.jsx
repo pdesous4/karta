@@ -2,7 +2,7 @@ import { useState } from "react";
 import { generateAudio } from "../lib/api";
 import CardForm from "./CardForm";
 
-const EMPTY_CARD = {
+export const EMPTY_CARD = {
   front: "",
   back: "",
   romanization: "",
@@ -20,23 +20,24 @@ function CardList({ cards, onChange, onAdd, onRemove, language }) {
   const [generatingAll, setGeneratingAll] = useState(false);
 
   async function handleGenerateAllAudio() {
-    const targets = cards.filter((c) => c.back && !c.audio_url);
+    const targets = cards
+      .map((c, i) => ({ ...c, index: i }))
+      .filter((c) => c.back && !c.audio_url);
     if (!targets.length || !language) return;
+
     setGeneratingAll(true);
     try {
       const results = await Promise.all(
         targets.map((card) =>
           generateAudio(card.back, language)
-            .then((res) => ({ back: card.back, ...res.data }))
+            .then((res) => ({ index: card.index, ...res.data }))
             .catch(() => null),
         ),
       );
       results.forEach((result) => {
         if (!result) return;
-        const index = cards.findIndex((c) => c.back === result.back);
-        if (index === -1) return;
-        onChange(index, "audio_url", result.audio_url);
-        onChange(index, "audio_slow_url", result.audio_slow_url);
+        onChange(result.index, "audio_url", result.audio_url);
+        onChange(result.index, "audio_slow_url", result.audio_slow_url);
       });
     } finally {
       setGeneratingAll(false);
@@ -88,5 +89,4 @@ function CardList({ cards, onChange, onAdd, onRemove, language }) {
   );
 }
 
-export { EMPTY_CARD };
 export default CardList;

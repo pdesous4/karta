@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getPublicDecks,
@@ -27,6 +27,29 @@ function Browse() {
       .finally(() => setLoading(false));
   }, []);
 
+  const filtered = useMemo(
+    () =>
+      decks.filter(
+        (deck) =>
+          deck.title.toLowerCase().includes(search.toLowerCase()) ||
+          deck.language.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [decks, search],
+  );
+
+  const grouped = useMemo(
+    () =>
+      filtered.reduce((acc, deck) => {
+        const lang = deck.language || "Other";
+        if (!acc[lang]) acc[lang] = [];
+        acc[lang].push(deck);
+        return acc;
+      }, {}),
+    [filtered],
+  );
+
+  const languages = useMemo(() => Object.keys(grouped).sort(), [grouped]);
+
   async function loadRatings(language, decks) {
     const ids = decks.map((d) => d.id);
     const res = await getBulkRatings(ids);
@@ -42,11 +65,8 @@ function Browse() {
     const res = await saveDeck(deckId);
     setSavedDecks((prev) => {
       const next = new Set(prev);
-      if (res.data.saved) {
-        next.add(deckId);
-      } else {
-        next.delete(deckId);
-      }
+      if (res.data.saved) next.add(deckId);
+      else next.delete(deckId);
       return next;
     });
   }
@@ -56,21 +76,6 @@ function Browse() {
     setExpanded(next);
     if (next) loadRatings(next, grouped[next]);
   }
-
-  const filtered = decks.filter(
-    (deck) =>
-      deck.title.toLowerCase().includes(search.toLowerCase()) ||
-      deck.language.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const grouped = filtered.reduce((acc, deck) => {
-    const lang = deck.language || "Other";
-    if (!acc[lang]) acc[lang] = [];
-    acc[lang].push(deck);
-    return acc;
-  }, {});
-
-  const languages = Object.keys(grouped).sort();
 
   if (loading) return <div className="text-gray-400 text-sm">Loading...</div>;
 
@@ -94,8 +99,7 @@ function Browse() {
 
       {languages.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
-          <p className="text-lg mb-2">No public decks yet</p>
-          <p className="text-sm">Be the first to publish one</p>
+          <p>No decks found</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -104,82 +108,67 @@ function Browse() {
               key={language}
               className="border border-gray-200 rounded-xl overflow-hidden"
             >
-              {/* Language header */}
               <button
                 onClick={() => handleExpand(language)}
                 className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="font-medium text-gray-900">{language}</span>
-                  <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                    {grouped[language].length} deck
-                    {grouped[language].length !== 1 ? "s" : ""}
+                  <span className="text-sm text-gray-400">
+                    {grouped[language].length} decks
                   </span>
                 </div>
-                <span
-                  className={`text-gray-400 transition-transform duration-200 ${
-                    expanded === language ? "rotate-180" : ""
-                  }`}
-                >
-                  ▾
+                <span className="text-gray-400 text-sm">
+                  {expanded === language ? "▲" : "▼"}
                 </span>
               </button>
 
-              {/* Deck list */}
               {expanded === language && (
                 <div className="border-t border-gray-100">
-                  {[...grouped[language]]
-                    .sort((a, b) => {
-                      const ratingA = ratings[a.id]?.average || 0;
-                      const ratingB = ratings[b.id]?.average || 0;
-                      return ratingB - ratingA;
-                    })
-                    .map((deck, i, arr) => (
-                      <div
-                        key={deck.id}
-                        className={`px-5 py-4 hover:bg-gray-50 transition-colors ${
-                          i !== arr.length - 1 ? "border-b border-gray-100" : ""
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">
-                              {deck.title}
+                  {grouped[language].map((deck, i) => (
+                    <div
+                      key={deck.id}
+                      className={`px-5 py-4 ${i < grouped[language].length - 1 ? "border-b border-gray-100" : ""}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {deck.title}
+                          </p>
+                          {deck.description && (
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {deck.description}
                             </p>
-                            {deck.description && (
-                              <p className="text-xs text-gray-400 mt-0.5">
-                                {deck.description}
-                              </p>
-                            )}
-                            <div className="mt-2">
-                              <StarRating
-                                average={ratings[deck.id]?.average}
-                                count={ratings[deck.id]?.count}
-                                onRate={(rating) => handleRate(deck.id, rating)}
-                              />
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <button
-                              onClick={() => handleSave(deck.id)}
-                              className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
-                                savedDecks.has(deck.id)
-                                  ? "border-gray-900 text-gray-900 bg-gray-50"
-                                  : "border-gray-200 text-gray-400 hover:border-gray-400"
-                              }`}
-                            >
-                              {savedDecks.has(deck.id) ? "★ Saved" : "☆ Save"}
-                            </button>
-                            <button
-                              onClick={() => navigate(`/study/${deck.id}`)}
-                              className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors"
-                            >
-                              Study
-                            </button>
+                          )}
+                          <div className="mt-2">
+                            <StarRating
+                              average={ratings[deck.id]?.average}
+                              count={ratings[deck.id]?.count}
+                              onRate={(rating) => handleRate(deck.id, rating)}
+                            />
                           </div>
                         </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          <button
+                            onClick={() => handleSave(deck.id)}
+                            className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                              savedDecks.has(deck.id)
+                                ? "border-gray-900 text-gray-900 bg-gray-50"
+                                : "border-gray-200 text-gray-400 hover:border-gray-400"
+                            }`}
+                          >
+                            {savedDecks.has(deck.id) ? "★ Saved" : "☆ Save"}
+                          </button>
+                          <button
+                            onClick={() => navigate(`/study/${deck.id}`)}
+                            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors"
+                          >
+                            Study
+                          </button>
+                        </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

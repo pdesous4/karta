@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { getMyDecks, getDueCards, getSavedDecks } from "../lib/api";
 import useStore from "../store/index";
 
@@ -11,9 +11,13 @@ function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    getMyDecks().then((res) => setDecks(res.data));
-    getDueCards().then((res) => setDue(res.data));
-    getSavedDecks().then((res) => setSavedDecks(res.data));
+    Promise.all([getMyDecks(), getDueCards(), getSavedDecks()]).then(
+      ([decksRes, dueRes, savedRes]) => {
+        setDecks(decksRes.data);
+        setDue(dueRes.data);
+        setSavedDecks(savedRes.data);
+      },
+    );
   }, []);
 
   const username =
@@ -37,7 +41,6 @@ function Home() {
         </div>
       )}
 
-      {/* Saved decks */}
       {savedDecks.length > 0 && (
         <div className="mb-10">
           <div className="flex items-center justify-between mb-4">
@@ -67,7 +70,6 @@ function Home() {
         </div>
       )}
 
-      {/* My decks */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-medium text-gray-900">My Decks</h2>
         <button

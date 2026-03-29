@@ -11,22 +11,23 @@ const useStore = create((set) => ({
         set({
             session,
             user: session?.user ?? null,
-            isLoading: false
+            isLoading: false,
         })
 
-        // Listen for auth changes
-        supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             set({
                 session,
-                user: session?.user ?? null
+                user: session?.user ?? null,
             })
         })
+
+        return () => subscription.unsubscribe()
     },
 
     logout: async () => {
         await supabase.auth.signOut()
         set({ user: null, session: null })
-    }
+    },
 }))
 
 export default useStore

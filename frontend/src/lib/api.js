@@ -36,6 +36,7 @@ export const updateProgress = (card_id, grade) =>
   api.post("/progress", { card_id, grade });
 export const getDueCards = () => api.get("/progress/due");
 export const getAllProgress = () => api.get("/progress");
+export const getDueByDeck = () => api.get("/progress/due/by-deck");
 
 // Ratings
 export const rateDeck = (id, rating) =>
