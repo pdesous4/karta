@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from database import get_db
 from models.card import Card
 from models.deck import Deck
+from models.progress import Progress
 from models.user import User
 from dependencies import get_current_user
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime, date, timezone
 
 router = APIRouter(tags=["cards"])
 
@@ -45,8 +48,66 @@ def get_cards(deck_id: str, db: Session = Depends(get_db)):
     deck = db.query(Deck).filter(Deck.id == deck_id).first()
     if not deck:
         raise HTTPException(status_code=404, detail="Deck not found")
-    cards = db.query(Card).filter(Card.deck_id == deck_id).all()
-    return cards
+    return db.query(Card).filter(Card.deck_id == deck_id).all()
+
+
+@router.get("/decks/{deck_id}/study-cards")
+def get_study_cards(
+    deck_id: str,
+    mode: str = "normal",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    deck = db.query(Deck).filter(Deck.id == deck_id).first()
+    if not deck:
+        raise HTTPException(status_code=404, detail="Deck not found")
+
+    all_cards = db.query(Card).filter(Card.deck_id == deck_id).all()
+    card_ids = [c.id for c in all_cards]
+
+    progress_records = db.query(Progress).filter(
+        Progress.user_id == current_user.id,
+        Progress.card_id.in_(card_ids),
+    ).all()
+    seen_card_ids = {p.card_id for p in progress_records}
+
+    # Review mode — return all studied cards, shuffled
+    if mode == "review":
+        studied = [c for c in all_cards if c.id in seen_card_ids]
+        return {
+            "due": studied,
+            "new": [],
+            "daily_limit": deck.daily_new_cards or 10,
+            "new_today": 0,
+        }
+
+    # Normal mode
+    now = datetime.now(timezone.utc)
+    due_cards = [
+        c for c in all_cards
+        if c.id in seen_card_ids
+        and any(p.card_id == c.id and p.due_at <= now for p in progress_records)
+    ]
+
+    new_cards_all = [c for c in all_cards if c.id not in seen_card_ids]
+
+    today_start = datetime.combine(date.today(), datetime.min.time(), tzinfo=timezone.utc)
+    new_today = db.query(Progress).filter(
+        Progress.user_id == current_user.id,
+        Progress.card_id.in_(card_ids),
+        Progress.created_at >= today_start,
+    ).count()
+
+    daily_limit = deck.daily_new_cards or 10
+    remaining_new = max(0, daily_limit - new_today)
+    new_cards = new_cards_all[:remaining_new]
+
+    return {
+        "due": due_cards,
+        "new": new_cards,
+        "daily_limit": daily_limit,
+        "new_today": new_today,
+    }
 
 
 @router.post("/decks/{deck_id}/cards")

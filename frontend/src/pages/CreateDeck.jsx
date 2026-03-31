@@ -25,6 +25,7 @@ function CreateDeck() {
     description: "",
     language: "",
     is_public: false,
+    daily_new_cards: 10,
   });
   const [template, setTemplate] = useState({ ...DEFAULT_TEMPLATE });
   const [cards, setCards] = useState([{ ...EMPTY_CARD }]);

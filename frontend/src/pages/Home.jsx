@@ -1,27 +1,35 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { getMyDecks, getDueCards, getSavedDecks } from "../lib/api";
+import { Link, useNavigate } from "react-router-dom";
+import { getMyDecks, getDueByDeck, deleteDeck } from "../lib/api";
 import useStore from "../store/index";
 
 function Home() {
   const { user } = useStore();
-  const [decks, setDecks] = useState([]);
-  const [due, setDue] = useState([]);
-  const [savedDecks, setSavedDecks] = useState([]);
   const navigate = useNavigate();
+  const [decks, setDecks] = useState([]);
+  const [dueCounts, setDueCounts] = useState({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getMyDecks(), getDueCards(), getSavedDecks()]).then(
-      ([decksRes, dueRes, savedRes]) => {
+    Promise.all([getMyDecks(), getDueByDeck()])
+      .then(([decksRes, dueRes]) => {
         setDecks(decksRes.data);
-        setDue(dueRes.data);
-        setSavedDecks(savedRes.data);
-      },
-    );
+        setDueCounts(dueRes.data);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
+  async function handleDelete(id) {
+    if (!confirm("Delete this deck?")) return;
+    await deleteDeck(id);
+    setDecks((prev) => prev.filter((d) => d.id !== id));
+  }
+
+  const totalDue = Object.values(dueCounts).reduce((sum, n) => sum + n, 0);
   const username =
     user?.user_metadata?.username || user?.email?.split("@")[0] || "";
+
+  if (loading) return <div className="text-gray-400 text-sm">Loading...</div>;
 
   return (
     <div className="max-w-3xl">
@@ -30,10 +38,10 @@ function Home() {
       </h1>
       <p className="text-gray-400 text-sm mb-10">Ready to study?</p>
 
-      {due.length > 0 && (
+      {totalDue > 0 && (
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 mb-8">
           <h2 className="font-medium text-blue-900 mb-1">
-            {due.length} card{due.length !== 1 ? "s" : ""} due for review
+            {totalDue} card{totalDue !== 1 ? "s" : ""} due for review
           </h2>
           <p className="text-sm text-blue-500">
             Keep your streak going — review them now
@@ -41,43 +49,14 @@ function Home() {
         </div>
       )}
 
-      {savedDecks.length > 0 && (
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-medium text-gray-900">Saved Decks</h2>
-            <button
-              onClick={() => navigate("/browse")}
-              className="text-sm text-gray-400 hover:text-gray-700 transition-colors"
-            >
-              Browse more
-            </button>
-          </div>
-          <div className="flex flex-col gap-3">
-            {savedDecks.map((deck) => (
-              <div
-                key={deck.id}
-                className="border border-gray-200 rounded-xl p-5 flex items-center justify-between hover:border-gray-300 transition-colors cursor-pointer"
-                onClick={() => navigate(`/study/${deck.id}`)}
-              >
-                <div>
-                  <h3 className="font-medium text-gray-900">{deck.title}</h3>
-                  <p className="text-sm text-gray-400 mt-1">{deck.language}</p>
-                </div>
-                <span className="text-sm text-gray-400">Study →</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-medium text-gray-900">My Decks</h2>
-        <button
-          onClick={() => navigate("/create")}
+        <h2 className="font-medium text-gray-900">Currently Studying</h2>
+        <Link
+          to="/create"
           className="text-sm text-gray-400 hover:text-gray-700 transition-colors"
         >
-          + New
-        </button>
+          + New Deck
+        </Link>
       </div>
 
       {decks.length === 0 ? (
@@ -92,19 +71,68 @@ function Home() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {decks.map((deck) => (
-            <div
-              key={deck.id}
-              className="border border-gray-200 rounded-xl p-5 flex items-center justify-between hover:border-gray-300 transition-colors cursor-pointer"
-              onClick={() => navigate(`/study/${deck.id}`)}
-            >
-              <div>
-                <h3 className="font-medium text-gray-900">{deck.title}</h3>
-                <p className="text-sm text-gray-400 mt-1">{deck.language}</p>
+          {decks.map((deck) => {
+            const due = dueCounts[deck.id] || 0;
+            return (
+              <div
+                key={deck.id}
+                className={`border rounded-xl p-5 flex items-center justify-between transition-colors ${
+                  due > 0
+                    ? "border-blue-200 hover:border-blue-300"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-gray-900">{deck.title}</h3>
+                    {due > 0 && (
+                      <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                        {due} due
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-400 mt-1">
+                    {deck.language} · {deck.is_public ? "Public" : "Private"}
+                  </p>
+                  {deck.description && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      {deck.description}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Link
+                    to={`/study/${deck.id}`}
+                    className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                      due > 0
+                        ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-700"
+                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    Study
+                  </Link>
+                  <Link
+                    to={`/study/${deck.id}?mode=review`}
+                    className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Review
+                  </Link>
+                  <Link
+                    to={`/edit/${deck.id}`}
+                    className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Edit
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(deck.id)}
+                    className="text-sm px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-              <span className="text-sm text-gray-400">Study →</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

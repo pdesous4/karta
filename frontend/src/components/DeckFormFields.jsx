@@ -41,6 +41,26 @@ function DeckFormFields({ deckForm, onChange }) {
           placeholder="What is this deck about?"
         />
       </div>
+      <div>
+        <label className="text-sm font-medium text-gray-700 block mb-1">
+          New cards per day
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min={1}
+            max={100}
+            value={deckForm.daily_new_cards ?? 10}
+            onChange={(e) =>
+              onChange("daily_new_cards", parseInt(e.target.value) || 1)
+            }
+            className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
+          />
+          <span className="text-xs text-gray-400">
+            New cards introduced per study session
+          </span>
+        </div>
+      </div>
       <div className="flex items-center gap-2">
         <input
           type="checkbox"

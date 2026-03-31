@@ -11,19 +11,21 @@ router = APIRouter(prefix="/decks", tags=["decks"])
 
 
 class DeckCreate(BaseModel):
-    title:       str
-    description: Optional[str]  = None
-    language:    str
-    is_public:   bool            = False
-    template:    Optional[dict]  = None
+    title:            str
+    description:      Optional[str]  = None
+    language:         str
+    is_public:        bool           = False
+    template:         Optional[dict] = None
+    daily_new_cards:  int            = 10
 
 
 class DeckUpdate(BaseModel):
-    title:       Optional[str]  = None
-    description: Optional[str]  = None
-    language:    Optional[str]  = None
-    is_public:   Optional[bool] = None
-    template:    Optional[dict] = None
+    title:            Optional[str]  = None
+    description:      Optional[str]  = None
+    language:         Optional[str]  = None
+    is_public:        Optional[bool] = None
+    template:         Optional[dict] = None
+    daily_new_cards:  Optional[int]  = None
 
 
 @router.get("/")
@@ -56,12 +58,13 @@ def create_deck(
     db: Session = Depends(get_db),
 ):
     deck = Deck(
-        user_id     = current_user.id,
-        title       = body.title,
-        description = body.description,
-        language    = body.language,
-        is_public   = body.is_public,
-        template    = body.template or DEFAULT_TEMPLATE,
+        user_id          = current_user.id,
+        title            = body.title,
+        description      = body.description,
+        language         = body.language,
+        is_public        = body.is_public,
+        template         = body.template or DEFAULT_TEMPLATE,
+        daily_new_cards  = body.daily_new_cards,
     )
     db.add(deck)
     db.commit()

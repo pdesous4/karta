@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { getCards, getDeck, updateProgress } from "../lib/api";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { getStudyCards, getDeck, updateProgress } from "../lib/api";
 
 const DEFAULT_TEMPLATE = {
   show_romanization: true,
@@ -15,6 +15,8 @@ const DEFAULT_TEMPLATE = {
 
 function Study() {
   const { deckId } = useParams();
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get("mode") || "normal";
   const navigate = useNavigate();
   const [cards, setCards] = useState([]);
   const [deck, setDeck] = useState(null);
@@ -22,15 +24,18 @@ function Study() {
   const [flipped, setFlipped] = useState(false);
   const [stats, setStats] = useState({ correct: 0, wrong: 0, streak: 0 });
   const [loading, setLoading] = useState(true);
+  const [sessionInfo, setSessionInfo] = useState({ due: 0, new: 0 });
 
   useEffect(() => {
-    Promise.all([getCards(deckId), getDeck(deckId)])
-      .then(([cardsRes, deckRes]) => {
-        setCards(cardsRes.data);
+    Promise.all([getStudyCards(deckId, mode), getDeck(deckId)])
+      .then(([studyRes, deckRes]) => {
+        const { due, new: newCards } = studyRes.data;
+        setCards([...due, ...newCards]);
+        setSessionInfo({ due: due.length, new: newCards.length });
         setDeck(deckRes.data);
       })
       .finally(() => setLoading(false));
-  }, [deckId]);
+  }, [deckId, mode]);
 
   const template = deck?.template || DEFAULT_TEMPLATE;
 
@@ -64,10 +69,10 @@ function Study() {
         setFlipped((f) => !f);
       }
       if (flipped) {
-        if (e.key === "1") handleAnswer(0); // Again
-        if (e.key === "2") handleAnswer(1); // Hard
-        if (e.key === "3") handleAnswer(2); // Good
-        if (e.key === "4") handleAnswer(3); // Easy
+        if (e.key === "1") handleAnswer(0);
+        if (e.key === "2") handleAnswer(1);
+        if (e.key === "3") handleAnswer(2);
+        if (e.key === "4") handleAnswer(3);
       }
     }
     window.addEventListener("keydown", handleKey);
@@ -88,7 +93,11 @@ function Study() {
   if (!cards.length)
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <p className="text-gray-400">No cards in this deck yet</p>
+        <p className="text-gray-400">
+          {mode === "review"
+            ? "No studied cards yet — start a normal session first."
+            : "Nothing to study right now — you're all caught up!"}
+        </p>
         <button
           onClick={() => navigate("/mydecks")}
           className="text-sm text-gray-600 underline"
@@ -102,24 +111,16 @@ function Study() {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4 text-center">
         <div className="text-4xl">🎉</div>
-        <h2 className="text-2xl font-semibold text-gray-900">Deck Complete</h2>
+        <h2 className="text-2xl font-semibold text-gray-900">
+          Session Complete
+        </h2>
         <p className="text-gray-400 text-sm">
           {stats.correct} correct · {stats.wrong} missed · {stats.streak} streak
         </p>
+        <p className="text-xs text-gray-400">
+          {sessionInfo.due} reviews · {sessionInfo.new} new cards
+        </p>
         <div className="flex gap-3 mt-4">
-          <button
-            onClick={() => {
-              getCards(deckId).then((res) => {
-                setCards(res.data);
-                setIdx(0);
-                setFlipped(false);
-                setStats({ correct: 0, wrong: 0, streak: 0 });
-              });
-            }}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            Study Again
-          </button>
           <button
             onClick={() => navigate("/mydecks")}
             className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
@@ -135,13 +136,14 @@ function Study() {
 
   return (
     <div className="max-w-xl mx-auto flex flex-col items-center gap-8">
-      {/* Progress */}
       <div className="w-full flex flex-col gap-2">
         <div className="flex justify-between text-xs text-gray-400">
           <span>
             Card {idx + 1} of {cards.length}
           </span>
-          <span>{progress}%</span>
+          <span>
+            {sessionInfo.due} reviews · {sessionInfo.new} new
+          </span>
         </div>
         <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
           <div
@@ -151,20 +153,17 @@ function Study() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="flex gap-6 text-sm">
         <span className="text-green-600 font-medium">✓ {stats.correct}</span>
         <span className="text-red-500 font-medium">✗ {stats.wrong}</span>
         <span className="text-blue-500 font-medium">⚡ {stats.streak}</span>
       </div>
 
-      {/* Card */}
       <div
         className="w-full cursor-pointer"
         onClick={() => setFlipped((f) => !f)}
       >
         <div className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-8 flex flex-col items-center gap-4 transition-all duration-300">
-          {/* Front — always visible */}
           <span className="text-xs font-semibold tracking-widest uppercase text-gray-400">
             {deck?.language || "Front"}
           </span>
@@ -210,7 +209,6 @@ function Study() {
             </span>
           )}
 
-          {/* Back — revealed on expand */}
           {flipped && (
             <div className="w-full flex flex-col items-center gap-4 pt-4 border-t border-gray-200 mt-2">
               <span className="text-xs font-semibold tracking-widest uppercase text-gray-400">
@@ -303,43 +301,40 @@ function Study() {
         </div>
       </div>
 
-      {/* Answer buttons */}
       <div
         className={`w-full flex gap-3 transition-opacity duration-200 ${flipped ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       >
-        <button
-          onClick={() => handleAnswer(0)}
-          className="flex-1 py-3 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors flex flex-col items-center gap-0.5"
-        >
-          <span>Again</span>
-          <span className="text-xs opacity-50">1 day</span>
-        </button>
-        <button
-          onClick={() => handleAnswer(1)}
-          className="flex-1 py-3 rounded-xl border border-orange-200 text-orange-500 text-sm font-medium hover:bg-orange-50 transition-colors flex flex-col items-center gap-0.5"
-        >
-          <span>Hard</span>
-          <span className="text-xs opacity-50">· 1</span>
-        </button>
-        <button
-          onClick={() => handleAnswer(2)}
-          className="flex-1 py-3 rounded-xl border border-green-200 text-green-600 text-sm font-medium hover:bg-green-50 transition-colors flex flex-col items-center gap-0.5"
-        >
-          <span>Good</span>
-          <span className="text-xs opacity-50">· 2.5</span>
-        </button>
-        <button
-          onClick={() => handleAnswer(3)}
-          className="flex-1 py-3 rounded-xl border border-blue-200 text-blue-500 text-sm font-medium hover:bg-blue-50 transition-colors flex flex-col items-center gap-0.5"
-        >
-          <span>Easy</span>
-          <span className="text-xs opacity-50">· 1.3</span>
-        </button>
+        {[
+          {
+            grade: 0,
+            label: "Again",
+            color: "border-red-200 text-red-500 hover:bg-red-50",
+          },
+          {
+            grade: 1,
+            label: "Hard",
+            color: "border-orange-200 text-orange-500 hover:bg-orange-50",
+          },
+          {
+            grade: 2,
+            label: "Good",
+            color: "border-green-200 text-green-600 hover:bg-green-50",
+          },
+          {
+            grade: 3,
+            label: "Easy",
+            color: "border-blue-200 text-blue-500 hover:bg-blue-50",
+          },
+        ].map(({ grade, label, color }) => (
+          <button
+            key={grade}
+            onClick={() => handleAnswer(grade)}
+            className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-colors ${color}`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-
-      <p className="text-xs text-gray-300">
-        1 again · 2 hard · 3 good · 4 easy
-      </p>
     </div>
   );
 }

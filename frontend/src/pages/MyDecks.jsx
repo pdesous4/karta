@@ -84,6 +84,12 @@ function MyDecks() {
                     Study
                   </Link>
                   <Link
+                    to={`/study/${deck.id}?mode=review`}
+                    className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Review
+                  </Link>
+                  <Link
                     to={`/edit/${deck.id}`}
                     className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
                   >

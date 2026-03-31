@@ -23,6 +23,7 @@ export const getDeck = (id) => api.get(`/decks/${id}`);
 export const createDeck = (data) => api.post("/decks/", data);
 export const updateDeck = (id, data) => api.put(`/decks/${id}`, data);
 export const deleteDeck = (id) => api.delete(`/decks/${id}`);
+export const getStudyCards = (deckId, mode = 'normal') => api.get(`/decks/${deckId}/study-cards?mode=${mode}`)
 
 // Cards
 export const getCards = (deckId) => api.get(`/decks/${deckId}/cards`);

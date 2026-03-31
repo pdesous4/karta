@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, String, DateTime, Boolean, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 from database import Base
@@ -18,12 +18,13 @@ DEFAULT_TEMPLATE = {
 class Deck(Base):
     __tablename__ = "decks"
 
-    id          = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id     = Column(String, ForeignKey("users.id"), nullable=False)
-    title       = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    language    = Column(String, nullable=False)
-    is_public   = Column(Boolean, default=False)
-    template    = Column(JSONB, default=DEFAULT_TEMPLATE)
-    created_at  = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at  = Column(DateTime(timezone=True), onupdate=func.now())
+    id               = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id          = Column(String, ForeignKey("users.id"), nullable=False)
+    title            = Column(String, nullable=False)
+    description      = Column(String, nullable=True)
+    language         = Column(String, nullable=False)
+    is_public        = Column(Boolean, default=False)
+    template         = Column(JSONB, default=DEFAULT_TEMPLATE)
+    daily_new_cards  = Column(Integer, default=10, nullable=False)
+    created_at       = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at       = Column(DateTime(timezone=True), onupdate=func.now())

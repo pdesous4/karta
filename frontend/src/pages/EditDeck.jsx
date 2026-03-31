@@ -23,6 +23,7 @@ function EditDeck() {
     description: "",
     language: "",
     is_public: false,
+    daily_new_cards: 10,
   });
   const [template, setTemplate] = useState({});
   const [cards, setCards] = useState([]);
@@ -36,6 +37,7 @@ function EditDeck() {
           description: d.description || "",
           language: d.language,
           is_public: d.is_public,
+          daily_new_cards: d.daily_new_cards || 10,
         });
         setTemplate(d.template || {});
         setCards(cardsRes.data);

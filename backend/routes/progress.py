@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from backend.models.card import Card
 from database import get_db
 from models.progress import Progress
 from models.user import User
 from dependencies import get_current_user
 from services.srs import calculate_next_review
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone
+from models.card import Card
 
 router = APIRouter(tags=["progress"])
 
@@ -40,7 +40,7 @@ def update_progress(
             streak=0,
             ease_factor=2.5,
             interval=1,
-            due_at=datetime.utcnow(),
+            due_at=datetime.now(timezone.utc),
         )
         db.add(progress)
 
@@ -76,7 +76,7 @@ def get_due_cards(
         db.query(Progress)
         .filter(
             Progress.user_id == current_user.id,
-            Progress.due_at <= datetime.utcnow(),
+            Progress.due_at <= datetime.now(timezone.utc),
         )
         .all()
     )
@@ -101,7 +101,7 @@ def get_due_cards_by_deck(
         .join(Card, Progress.card_id == Card.id)
         .filter(
             Progress.user_id == current_user.id,
-            Progress.due_at <= datetime.utcnow(),
+            Progress.due_at <= datetime.now(timezone.utc),
         )
         .all()
     )
