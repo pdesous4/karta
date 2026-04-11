@@ -8,7 +8,7 @@ class Card(Base):
     __tablename__ = "cards"
 
     id                  = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    deck_id             = Column(String, ForeignKey("decks.id"), nullable=False)
+    deck_id             = Column(String, ForeignKey("decks.id"), nullable=False, index=True)
     front               = Column(String, nullable=False)
     back                = Column(String, nullable=False)
     romanization        = Column(String, nullable=True)

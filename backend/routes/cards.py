@@ -51,6 +51,13 @@ def get_cards(deck_id: str, db: Session = Depends(get_db)):
     return db.query(Card).filter(Card.deck_id == deck_id).all()
 
 
+def _card_with_srs(card, progress=None):
+    d = {c.name: getattr(card, c.name) for c in card.__table__.columns}
+    d["srs_interval"] = progress.interval if progress else 1
+    d["srs_ease_factor"] = progress.ease_factor if progress else 2.5
+    return d
+
+
 @router.get("/decks/{deck_id}/study-cards")
 def get_study_cards(
     deck_id: str,
@@ -70,23 +77,21 @@ def get_study_cards(
         Progress.card_id.in_(card_ids),
     ).all()
     seen_card_ids = {p.card_id for p in progress_records}
+    progress_map  = {p.card_id: p for p in progress_records}
 
     # Review mode — all studied cards
     if mode == "review":
         studied = [c for c in all_cards if c.id in seen_card_ids]
         return {
-            "due": studied,
+            "due": [_card_with_srs(c, progress_map.get(c.id)) for c in studied],
             "new": [],
             "daily_limit": deck.daily_new_cards or 10,
             "new_today": 0,
         }
 
     now = datetime.now(timezone.utc)
-    due_cards = [
-        c for c in all_cards
-        if c.id in seen_card_ids
-        and any(p.card_id == c.id and p.due_at <= now for p in progress_records)
-    ]
+    due_card_ids = {p.card_id for p in progress_records if p.due_at <= now}
+    due_cards = [c for c in all_cards if c.id in due_card_ids]
 
     new_cards_all = [c for c in all_cards if c.id not in seen_card_ids]
     daily_limit = deck.daily_new_cards or 10
@@ -95,8 +100,8 @@ def get_study_cards(
     if mode == "force":
         new_cards = new_cards_all[:daily_limit]
         return {
-            "due": due_cards,
-            "new": new_cards,
+            "due": [_card_with_srs(c, progress_map.get(c.id)) for c in due_cards],
+            "new": [_card_with_srs(c) for c in new_cards],
             "daily_limit": daily_limit,
             "new_today": 0,
         }
@@ -113,8 +118,8 @@ def get_study_cards(
     new_cards = new_cards_all[:remaining_new]
 
     return {
-        "due": due_cards,
-        "new": new_cards,
+        "due": [_card_with_srs(c, progress_map.get(c.id)) for c in due_cards],
+        "new": [_card_with_srs(c) for c in new_cards],
         "daily_limit": daily_limit,
         "new_today": new_today,
     }

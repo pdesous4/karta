@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Boolean, Integer, Float
+from sqlalchemy import Column, String, DateTime, ForeignKey, Boolean, Integer, Float, Index
 from sqlalchemy.sql import func
 from database import Base
 import uuid
@@ -18,3 +18,8 @@ class Progress(Base):
     last_reviewed = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (
+        Index("ix_progress_user_card", "user_id", "card_id"),
+        Index("ix_progress_user_due",  "user_id", "due_at"),
+    )

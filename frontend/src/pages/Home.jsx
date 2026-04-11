@@ -1,28 +1,21 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getMyDecks, getDueByDeck, deleteDeck } from "../lib/api";
+import { deleteDeck } from "../lib/api";
 import useStore from "../store/index";
 
 function Home() {
-  const { user } = useStore();
+  const { user, decks, dueCounts, loadDecks, removeDeck } = useStore();
   const navigate = useNavigate();
-  const [decks, setDecks] = useState([]);
-  const [dueCounts, setDueCounts] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!decks.length);
 
   useEffect(() => {
-    Promise.all([getMyDecks(), getDueByDeck()])
-      .then(([decksRes, dueRes]) => {
-        setDecks(decksRes.data);
-        setDueCounts(dueRes.data);
-      })
-      .finally(() => setLoading(false));
+    loadDecks().finally(() => setLoading(false));
   }, []);
 
   async function handleDelete(id) {
     if (!confirm("Delete this deck?")) return;
     await deleteDeck(id);
-    setDecks((prev) => prev.filter((d) => d.id !== id));
+    removeDeck(id);
   }
 
   const totalDue = Object.values(dueCounts).reduce((sum, n) => sum + n, 0);

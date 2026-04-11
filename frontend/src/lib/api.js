@@ -5,13 +5,28 @@ const api = axios.create({
   baseURL: "/api",
 });
 
-// Attach Supabase session token to every request
+// Cached token — avoids calling getSession() on every request.
+// Cleared on any auth state change (logout, token refresh).
+let _token = null;
+let _tokenExpiry = 0;
+
+export function clearTokenCache() {
+  _token = null;
+  _tokenExpiry = 0;
+}
+
 api.interceptors.request.use(async (config) => {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    config.headers.Authorization = `Bearer ${session.access_token}`;
+  const now = Date.now();
+  if (!_token || now >= _tokenExpiry) {
+    const { data: { session } } = await supabase.auth.getSession();
+    _token = session?.access_token ?? null;
+    // expires_at is a Unix timestamp in seconds; refresh 60s before expiry
+    _tokenExpiry = session?.expires_at
+      ? session.expires_at * 1000 - 60_000
+      : now + 55 * 60 * 1000;
+  }
+  if (_token) {
+    config.headers.Authorization = `Bearer ${_token}`;
   }
   return config;
 });

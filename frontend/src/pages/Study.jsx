@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { getStudyCards, getDeck, updateProgress } from "../lib/api";
 
@@ -9,6 +9,20 @@ function shuffle(arr) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+function calcNextInterval(grade, interval, easeFactor) {
+  if (grade === 0) return 1;
+  if (grade === 1) return Math.max(1, Math.floor(interval * 1.2));
+  if (grade === 2) return Math.max(1, Math.floor(interval * easeFactor));
+  if (grade === 3) return Math.max(1, Math.floor(interval * easeFactor * 1.3));
+}
+
+function fmtInterval(days) {
+  if (days < 2) return "1d";
+  if (days < 7) return `${days}d`;
+  if (days < 30) return `${Math.round(days / 7)}w`;
+  return `${Math.round(days / 30)}mo`;
 }
 
 const DEFAULT_TEMPLATE = {
@@ -22,11 +36,19 @@ const DEFAULT_TEMPLATE = {
   back_audio_slow: true,
 };
 
+const GRADES = [
+  { grade: 0, label: "Again", key: "1", color: "border-red-200 text-red-500 hover:bg-red-50" },
+  { grade: 1, label: "Hard",  key: "2", color: "border-orange-200 text-orange-500 hover:bg-orange-50" },
+  { grade: 2, label: "Good",  key: "3", color: "border-green-200 text-green-600 hover:bg-green-50" },
+  { grade: 3, label: "Easy",  key: "4", color: "border-blue-200 text-blue-500 hover:bg-blue-50" },
+];
+
 function Study() {
   const { deckId } = useParams();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get("mode") || "normal";
   const navigate = useNavigate();
+
   const [cards, setCards] = useState([]);
   const [deck, setDeck] = useState(null);
   const [idx, setIdx] = useState(0);
@@ -35,6 +57,8 @@ function Study() {
   const [loading, setLoading] = useState(true);
   const [sessionInfo, setSessionInfo] = useState({ due: 0, new: 0 });
   const [noMoreNew, setNoMoreNew] = useState(false);
+  const [lastState, setLastState] = useState(null);
+  const touchStart = useRef(null);
 
   useEffect(() => {
     Promise.all([getStudyCards(deckId, mode), getDeck(deckId)])
@@ -47,9 +71,38 @@ function Study() {
       .finally(() => setLoading(false));
   }, [deckId, mode]);
 
+  // Preload next card's audio while the user reads the current one
+  useEffect(() => {
+    const next = cards[idx + 1];
+    if (!next) return;
+    if (next.audio_url) {
+      const a = new Audio();
+      a.preload = "auto";
+      a.src = next.audio_url;
+    }
+    if (next.audio_slow_url) {
+      const a = new Audio();
+      a.preload = "auto";
+      a.src = next.audio_slow_url;
+    }
+  }, [idx, cards]);
+
+  // Auto-play audio when card is revealed
+  useEffect(() => {
+    if (!flipped || !cards[idx]) return;
+    const t = deck?.template || DEFAULT_TEMPLATE;
+    if (t.back_audio && cards[idx].audio_url) {
+      new Audio(cards[idx].audio_url).play().catch(() => {});
+    }
+  }, [flipped, idx, deck]);
+
+  const template = deck?.template || DEFAULT_TEMPLATE;
+
   function handleStudyAnyway() {
     setLoading(true);
     setNoMoreNew(false);
+    setCards([]);
+    setIdx(0);
     getStudyCards(deckId, "force")
       .then((res) => {
         const { due, new: newCards } = res.data;
@@ -59,21 +112,29 @@ function Study() {
         } else {
           setCards(all);
           setSessionInfo({ due: due.length, new: newCards.length });
-          setIdx(0);
           setFlipped(false);
           setStats({ correct: 0, wrong: 0, streak: 0 });
+          setLastState(null);
         }
       })
       .finally(() => setLoading(false));
   }
 
-  const template = deck?.template || DEFAULT_TEMPLATE;
+  const handleUndo = useCallback(() => {
+    if (!lastState) return;
+    setIdx(lastState.idx);
+    setCards(lastState.cards);
+    setStats(lastState.stats);
+    setFlipped(true);
+    setLastState(null);
+  }, [lastState]);
 
   const handleAnswer = useCallback(
     (grade) => {
       if (!flipped) return;
       const card = cards[idx];
 
+      setLastState({ idx, cards: [...cards], stats: { ...stats } });
       updateProgress(card.id, grade);
 
       setStats((prev) => ({
@@ -83,13 +144,18 @@ function Study() {
       }));
 
       if (grade === 0) {
-        setCards((prev) => [...prev, card]);
+        // Re-insert ~10 cards ahead instead of at the end
+        setCards((prev) => {
+          const next = [...prev];
+          next.splice(Math.min(idx + 10, next.length), 0, card);
+          return next;
+        });
       }
 
       setFlipped(false);
-      setTimeout(() => setIdx((prev) => prev + 1), 200);
+      setIdx((prev) => prev + 1);
     },
-    [flipped, cards, idx],
+    [flipped, cards, idx, stats],
   );
 
   useEffect(() => {
@@ -98,6 +164,7 @@ function Study() {
         e.preventDefault();
         setFlipped((f) => !f);
       }
+      if (e.key === "u" || e.key === "U") handleUndo();
       if (flipped) {
         if (e.key === "1") handleAnswer(0);
         if (e.key === "2") handleAnswer(1);
@@ -107,10 +174,10 @@ function Study() {
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [handleAnswer, flipped]);
+  }, [handleAnswer, handleUndo, flipped]);
 
   function playAudio(url) {
-    if (url) new Audio(url).play();
+    if (url) new Audio(url).play().catch(() => {});
   }
 
   if (loading)
@@ -174,6 +241,18 @@ function Study() {
         </p>
         <div className="flex gap-3 mt-4">
           <button
+            onClick={handleStudyAnyway}
+            className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            Study More
+          </button>
+          <button
+            onClick={() => navigate(`/study/${deckId}?mode=review`)}
+            className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            Review
+          </button>
+          <button
             onClick={() => navigate("/mydecks")}
             className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
           >
@@ -185,10 +264,20 @@ function Study() {
 
   const card = cards[idx];
   const progress = Math.round((idx / cards.length) * 100);
+  const srsInterval = card.srs_interval ?? 1;
+  const srsFactor = card.srs_ease_factor ?? 2.5;
 
   return (
     <div className="max-w-xl mx-auto flex flex-col items-center gap-8">
       <div className="w-full flex flex-col gap-2">
+        {deck && (
+          <button
+            onClick={() => navigate("/mydecks")}
+            className="text-xs text-gray-400 hover:text-gray-600 self-start mb-1 transition-colors"
+          >
+            ← {deck.title}
+          </button>
+        )}
         <div className="flex justify-between text-xs text-gray-400">
           <span>
             Card {idx + 1} of {cards.length}
@@ -205,17 +294,45 @@ function Study() {
         </div>
       </div>
 
-      <div className="flex gap-6 text-sm">
+      <div className="flex gap-6 text-sm items-center">
         <span className="text-green-600 font-medium">✓ {stats.correct}</span>
         <span className="text-red-500 font-medium">✗ {stats.wrong}</span>
         <span className="text-blue-500 font-medium">⚡ {stats.streak}</span>
+        {lastState && (
+          <button
+            onClick={handleUndo}
+            title="Undo last grade (U)"
+            className="ml-2 text-xs text-gray-400 hover:text-gray-700 border border-gray-200 px-2 py-1 rounded transition-colors"
+          >
+            ↩ Undo
+          </button>
+        )}
       </div>
 
       <div
         className="w-full cursor-pointer"
         onClick={() => setFlipped((f) => !f)}
+        onTouchStart={(e) => {
+          touchStart.current = {
+            x: e.touches[0].clientX,
+            y: e.touches[0].clientY,
+          };
+        }}
+        onTouchEnd={(e) => {
+          if (!touchStart.current) return;
+          const dx = e.changedTouches[0].clientX - touchStart.current.x;
+          const dy = e.changedTouches[0].clientY - touchStart.current.y;
+          touchStart.current = null;
+          if (Math.abs(dx) > Math.abs(dy)) {
+            if (!flipped) return;
+            if (dx < -60) handleAnswer(0); // swipe left = Again
+            if (dx > 60) handleAnswer(2);  // swipe right = Good
+          } else if (dy < -50 && !flipped) {
+            setFlipped(true); // swipe up = reveal
+          }
+        }}
       >
-        <div className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-8 flex flex-col items-center gap-4 transition-all duration-300">
+        <div className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-8 flex flex-col items-center gap-4">
           <span className="text-xs font-semibold tracking-widest uppercase text-gray-400">
             {deck?.language || "Front"}
           </span>
@@ -257,7 +374,7 @@ function Study() {
 
           {!flipped && (
             <span className="text-xs text-gray-300 mt-2">
-              tap to reveal · space
+              tap · space · swipe up
             </span>
           )}
 
@@ -356,34 +473,16 @@ function Study() {
       <div
         className={`w-full flex gap-3 transition-opacity duration-200 ${flipped ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       >
-        {[
-          {
-            grade: 0,
-            label: "Again",
-            color: "border-red-200 text-red-500 hover:bg-red-50",
-          },
-          {
-            grade: 1,
-            label: "Hard",
-            color: "border-orange-200 text-orange-500 hover:bg-orange-50",
-          },
-          {
-            grade: 2,
-            label: "Good",
-            color: "border-green-200 text-green-600 hover:bg-green-50",
-          },
-          {
-            grade: 3,
-            label: "Easy",
-            color: "border-blue-200 text-blue-500 hover:bg-blue-50",
-          },
-        ].map(({ grade, label, color }) => (
+        {GRADES.map(({ grade, label, key, color }) => (
           <button
             key={grade}
             onClick={() => handleAnswer(grade)}
-            className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-colors ${color}`}
+            className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-colors flex flex-col items-center gap-0.5 ${color}`}
           >
-            {label}
+            <span>{label}</span>
+            <span className="text-xs opacity-50">
+              {fmtInterval(calcNextInterval(grade, srsInterval, srsFactor))} · {key}
+            </span>
           </button>
         ))}
       </div>

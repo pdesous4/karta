@@ -50,7 +50,7 @@ function Browse() {
 
   const languages = useMemo(() => Object.keys(grouped).sort(), [grouped]);
 
-  async function loadRatings(language, decks) {
+  async function loadRatings(decks) {
     const ids = decks.map((d) => d.id);
     const res = await getBulkRatings(ids);
     setRatings((prev) => ({ ...prev, ...res.data }));
@@ -74,7 +74,10 @@ function Browse() {
   function handleExpand(language) {
     const next = expanded === language ? null : language;
     setExpanded(next);
-    if (next) loadRatings(next, grouped[next]);
+    if (next) {
+      const alreadyLoaded = grouped[next].every((d) => ratings[d.id] !== undefined);
+      if (!alreadyLoaded) loadRatings(grouped[next]);
+    }
   }
 
   if (loading) return <div className="text-gray-400 text-sm">Loading...</div>;

@@ -63,7 +63,6 @@ def update_progress(
     progress.last_grade  = body.grade
 
     db.commit()
-    db.refresh(progress)
     return progress
 
 
@@ -96,18 +95,15 @@ def get_due_cards_by_deck(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    due = (
-        db.query(Progress)
-        .join(Card, Progress.card_id == Card.id)
+    from sqlalchemy import func
+    results = (
+        db.query(Card.deck_id, func.count(Progress.id))
+        .join(Progress, Progress.card_id == Card.id)
         .filter(
             Progress.user_id == current_user.id,
             Progress.due_at <= datetime.now(timezone.utc),
         )
+        .group_by(Card.deck_id)
         .all()
     )
-    counts = {}
-    for p in due:
-        card = db.query(Card).filter(Card.id == p.card_id).first()
-        if card:
-            counts[card.deck_id] = counts.get(card.deck_id, 0) + 1
-    return counts
+    return {deck_id: count for deck_id, count in results}

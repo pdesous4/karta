@@ -1,25 +1,20 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getMyDecks, deleteDeck, getDueByDeck } from "../lib/api";
+import { deleteDeck } from "../lib/api";
+import useStore from "../store/index";
 
 function MyDecks() {
-  const [decks, setDecks] = useState([]);
-  const [dueCounts, setDueCounts] = useState({});
-  const [loading, setLoading] = useState(true);
+  const { decks, dueCounts, loadDecks, removeDeck } = useStore();
+  const [loading, setLoading] = useState(!decks.length);
 
   useEffect(() => {
-    Promise.all([getMyDecks(), getDueByDeck()])
-      .then(([decksRes, dueRes]) => {
-        setDecks(decksRes.data);
-        setDueCounts(dueRes.data);
-      })
-      .finally(() => setLoading(false));
+    loadDecks().finally(() => setLoading(false));
   }, []);
 
   async function handleDelete(id) {
     if (!confirm("Delete this deck?")) return;
     await deleteDeck(id);
-    setDecks((prev) => prev.filter((d) => d.id !== id));
+    removeDeck(id);
   }
 
   if (loading) return <div className="text-gray-400 text-sm">Loading...</div>;
