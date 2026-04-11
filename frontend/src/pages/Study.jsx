@@ -2,6 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { getStudyCards, getDeck, updateProgress } from "../lib/api";
 
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 const DEFAULT_TEMPLATE = {
   show_romanization: true,
   show_context: true,
@@ -25,17 +34,38 @@ function Study() {
   const [stats, setStats] = useState({ correct: 0, wrong: 0, streak: 0 });
   const [loading, setLoading] = useState(true);
   const [sessionInfo, setSessionInfo] = useState({ due: 0, new: 0 });
+  const [noMoreNew, setNoMoreNew] = useState(false);
 
   useEffect(() => {
     Promise.all([getStudyCards(deckId, mode), getDeck(deckId)])
       .then(([studyRes, deckRes]) => {
         const { due, new: newCards } = studyRes.data;
-        setCards([...due, ...newCards]);
+        setCards(shuffle([...due, ...newCards]));
         setSessionInfo({ due: due.length, new: newCards.length });
         setDeck(deckRes.data);
       })
       .finally(() => setLoading(false));
   }, [deckId, mode]);
+
+  function handleStudyAnyway() {
+    setLoading(true);
+    setNoMoreNew(false);
+    getStudyCards(deckId, "force")
+      .then((res) => {
+        const { due, new: newCards } = res.data;
+        const all = shuffle([...due, ...newCards]);
+        if (!all.length) {
+          setNoMoreNew(true);
+        } else {
+          setCards(all);
+          setSessionInfo({ due: due.length, new: newCards.length });
+          setIdx(0);
+          setFlipped(false);
+          setStats({ correct: 0, wrong: 0, streak: 0 });
+        }
+      })
+      .finally(() => setLoading(false));
+  }
 
   const template = deck?.template || DEFAULT_TEMPLATE;
 
@@ -98,9 +128,31 @@ function Study() {
             ? "No studied cards yet — start a normal session first."
             : "Nothing to study right now — you're all caught up!"}
         </p>
+        {mode !== "review" && (
+          <div className="flex gap-3">
+            {noMoreNew ? (
+              <p className="text-sm text-gray-400">
+                No more new cards in this deck.
+              </p>
+            ) : (
+              <button
+                onClick={handleStudyAnyway}
+                className="text-sm px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Study anyway
+              </button>
+            )}
+            <button
+              onClick={() => navigate(`/study/${deckId}?mode=review`)}
+              className="text-sm px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Review
+            </button>
+          </div>
+        )}
         <button
           onClick={() => navigate("/mydecks")}
-          className="text-sm text-gray-600 underline"
+          className="text-sm text-gray-400 underline"
         >
           Go back
         </button>
