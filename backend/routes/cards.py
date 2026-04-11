@@ -71,7 +71,7 @@ def get_study_cards(
     ).all()
     seen_card_ids = {p.card_id for p in progress_records}
 
-    # Review mode — return all studied cards, shuffled
+    # Review mode — all studied cards
     if mode == "review":
         studied = [c for c in all_cards if c.id in seen_card_ids]
         return {
@@ -81,7 +81,6 @@ def get_study_cards(
             "new_today": 0,
         }
 
-    # Normal mode
     now = datetime.now(timezone.utc)
     due_cards = [
         c for c in all_cards
@@ -90,7 +89,19 @@ def get_study_cards(
     ]
 
     new_cards_all = [c for c in all_cards if c.id not in seen_card_ids]
+    daily_limit = deck.daily_new_cards or 10
 
+    # Force mode — ignore daily limit, just load next batch of new cards
+    if mode == "force":
+        new_cards = new_cards_all[:daily_limit]
+        return {
+            "due": due_cards,
+            "new": new_cards,
+            "daily_limit": daily_limit,
+            "new_today": 0,
+        }
+
+    # Normal mode
     today_start = datetime.combine(date.today(), datetime.min.time(), tzinfo=timezone.utc)
     new_today = db.query(Progress).filter(
         Progress.user_id == current_user.id,
@@ -98,7 +109,6 @@ def get_study_cards(
         Progress.created_at >= today_start,
     ).count()
 
-    daily_limit = deck.daily_new_cards or 10
     remaining_new = max(0, daily_limit - new_today)
     new_cards = new_cards_all[:remaining_new]
 

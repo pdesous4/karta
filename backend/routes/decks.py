@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.deck import Deck, DEFAULT_TEMPLATE
 from models.user import User
+from models.card import Card
+from models.progress import Progress
 from dependencies import get_current_user
 from pydantic import BaseModel
 from typing import Optional
@@ -104,6 +106,13 @@ def delete_deck(
         raise HTTPException(status_code=404, detail="Deck not found")
     if deck.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not your deck")
+
+    # Delete progress for all cards in this deck
+    cards = db.query(Card).filter(Card.deck_id == deck_id).all()
+    card_ids = [c.id for c in cards]
+    if card_ids:
+        db.query(Progress).filter(Progress.card_id.in_(card_ids)).delete(synchronize_session=False)
+        db.query(Card).filter(Card.deck_id == deck_id).delete(synchronize_session=False)
 
     db.delete(deck)
     db.commit()
