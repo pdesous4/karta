@@ -20,7 +20,7 @@ function StarRating({ average, count, onRate, readonly = false }) {
                 onClick={() => !readonly && onRate && onRate(position)}
             >
                 {/* Empty star base */}
-                <span className="text-gray-200">★</span>
+                <span className="text-stone-200">★</span>
 
                 {/* Filled overlay */}
                 {(isFull || isHalf) && (
@@ -41,7 +41,7 @@ function StarRating({ average, count, onRate, readonly = false }) {
                 {[1, 2, 3, 4, 5].map(position => renderStar(position))}
             </div>
             {average && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-stone-400">
                     {/*average*/}
                 </span>
             )}

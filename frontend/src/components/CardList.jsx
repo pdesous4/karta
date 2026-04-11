@@ -47,9 +47,9 @@ function CardList({ cards, onChange, onAdd, onRemove, language }) {
   return (
     <section className="mb-10">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-medium text-gray-700 uppercase tracking-wider">
+        <h2 className="text-sm font-medium text-stone-700 uppercase tracking-wider">
           Cards{" "}
-          <span className="text-gray-400 font-normal normal-case">
+          <span className="text-stone-400 font-normal normal-case">
             ({cards.length})
           </span>
         </h2>
@@ -60,7 +60,7 @@ function CardList({ cards, onChange, onAdd, onRemove, language }) {
             !cards.some((c) => c.back && !c.audio_url) ||
             !language
           }
-          className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-40"
+          className="text-xs px-3 py-1.5 border border-stone-200 rounded-lg text-stone-600 hover:bg-stone-100 transition-colors disabled:opacity-40"
         >
           {generatingAll ? "⟳ Generating..." : "🔊 Generate All"}
         </button>
@@ -81,7 +81,7 @@ function CardList({ cards, onChange, onAdd, onRemove, language }) {
 
       <button
         onClick={onAdd}
-        className="w-full mt-4 border border-dashed border-gray-200 text-gray-400 rounded-xl py-3 text-sm hover:border-gray-400 hover:text-gray-600 transition-colors"
+        className="w-full mt-4 border border-dashed border-stone-200 text-stone-400 rounded-xl py-3 text-sm hover:border-stone-400 hover:text-stone-600 transition-colors"
       >
         + Add Card
       </button>

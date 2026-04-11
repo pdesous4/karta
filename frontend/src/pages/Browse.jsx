@@ -80,13 +80,13 @@ function Browse() {
     }
   }
 
-  if (loading) return <div className="text-gray-400 text-sm">Loading...</div>;
+  if (loading) return <div className="text-stone-400 text-sm">Loading...</div>;
 
   return (
     <div className="max-w-3xl">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Browse Decks</h1>
-        <span className="text-sm text-gray-400">{decks.length} decks</span>
+        <h1 className="text-2xl font-semibold text-stone-900">Browse Decks</h1>
+        <span className="text-sm text-stone-400">{decks.length} decks</span>
       </div>
 
       <input
@@ -97,11 +97,11 @@ function Browse() {
           setExpanded(null);
         }}
         placeholder="Search by title or language..."
-        className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-gray-400 mb-4"
+        className="w-full bg-white border border-stone-200 rounded-lg px-4 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 mb-6"
       />
 
       {languages.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-stone-400">
           <p>No decks found</p>
         </div>
       ) : (
@@ -109,37 +109,37 @@ function Browse() {
           {languages.map((language) => (
             <div
               key={language}
-              className="border border-gray-200 rounded-xl overflow-hidden"
+              className="bg-white border border-stone-200 rounded-xl overflow-hidden shadow-sm"
             >
               <button
                 onClick={() => handleExpand(language)}
-                className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-stone-50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <span className="font-medium text-gray-900">{language}</span>
-                  <span className="text-sm text-gray-400">
-                    {grouped[language].length} decks
+                  <span className="font-medium text-stone-900">{language}</span>
+                  <span className="text-sm text-stone-400">
+                    {grouped[language].length} deck{grouped[language].length !== 1 ? "s" : ""}
                   </span>
                 </div>
-                <span className="text-gray-400 text-sm">
+                <span className="text-stone-400 text-xs">
                   {expanded === language ? "▲" : "▼"}
                 </span>
               </button>
 
               {expanded === language && (
-                <div className="border-t border-gray-100">
+                <div className="border-t border-stone-100">
                   {grouped[language].map((deck, i) => (
                     <div
                       key={deck.id}
-                      className={`px-5 py-4 ${i < grouped[language].length - 1 ? "border-b border-gray-100" : ""}`}
+                      className={`px-5 py-4 ${i < grouped[language].length - 1 ? "border-b border-stone-100" : ""}`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-stone-900">
                             {deck.title}
                           </p>
                           {deck.description && (
-                            <p className="text-xs text-gray-400 mt-0.5">
+                            <p className="text-xs text-stone-400 mt-0.5">
                               {deck.description}
                             </p>
                           )}
@@ -156,15 +156,15 @@ function Browse() {
                             onClick={() => handleSave(deck.id)}
                             className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
                               savedDecks.has(deck.id)
-                                ? "border-gray-900 text-gray-900 bg-gray-50"
-                                : "border-gray-200 text-gray-400 hover:border-gray-400"
+                                ? "border-indigo-500 text-indigo-600 bg-indigo-50"
+                                : "border-stone-200 text-stone-400 hover:border-stone-400"
                             }`}
                           >
                             {savedDecks.has(deck.id) ? "★ Saved" : "☆ Save"}
                           </button>
                           <button
                             onClick={() => navigate(`/study/${deck.id}`)}
-                            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors"
+                            className="text-sm px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors"
                           >
                             Study
                           </button>

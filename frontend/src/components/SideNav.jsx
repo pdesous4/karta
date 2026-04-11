@@ -18,13 +18,15 @@ function SideNav() {
         { to: '/create',   label: 'Create Deck' },
     ]
 
+    const username = user?.user_metadata?.username || user?.email?.split('@')[0] || ''
+
     return (
-        <nav className="fixed top-0 left-0 w-56 h-screen bg-gray-50 border-r border-gray-200 flex flex-col p-4">
-            <div className="text-sm font-bold tracking-widest uppercase text-gray-900 px-3 py-4 mb-4">
-                Karta
+        <nav className="fixed top-0 left-0 w-56 h-screen bg-zinc-950 flex flex-col">
+            <div className="px-5 py-5 border-b border-white/10">
+                <span className="text-white font-semibold text-lg tracking-tight">Karta</span>
             </div>
 
-            <ul className="flex flex-col gap-1 flex-1">
+            <ul className="flex flex-col gap-0.5 p-3 flex-1">
                 {links.map(link => (
                     <li key={link.to}>
                         <NavLink
@@ -33,8 +35,8 @@ function SideNav() {
                             className={({ isActive }) =>
                                 `block px-3 py-2 rounded-lg text-sm transition-colors ${
                                     isActive
-                                        ? 'bg-gray-900 text-white'
-                                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                                        ? 'bg-white/10 text-white font-medium'
+                                        : 'text-zinc-400 hover:text-white hover:bg-white/5'
                                 }`
                             }
                         >
@@ -45,11 +47,11 @@ function SideNav() {
             </ul>
 
             {user && (
-                <div className="border-t border-gray-200 pt-4 mt-4">
-                    <div className="px-3 py-2 text-sm text-gray-500">{user.user_metadata.username}</div>
+                <div className="border-t border-white/10 p-3">
+                    <div className="px-3 py-1.5 text-xs text-zinc-500 truncate">{username}</div>
                     <button
                         onClick={handleLogout}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="w-full text-left px-3 py-2 text-sm text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                     >
                         Sign out
                     </button>

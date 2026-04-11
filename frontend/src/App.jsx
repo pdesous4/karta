@@ -31,7 +31,7 @@ function App() {
     <BrowserRouter>
       <Suspense
         fallback={
-          <div className="flex items-center justify-center h-screen text-sm text-gray-400">
+          <div className="flex items-center justify-center h-screen text-sm text-stone-400">
             Loading...
           </div>
         }
@@ -43,9 +43,9 @@ function App() {
             path="/*"
             element={
               <ProtectedRoute>
-                <div className="flex min-h-screen bg-white">
+                <div className="flex min-h-screen bg-stone-50">
                   <SideNav />
-                  <main className="ml-56 flex-1 p-12">
+                  <main className="ml-56 flex-1 px-10 py-8">
                     <Routes>
                       <Route path="/" element={<Home />} />
                       <Route path="/study/:deckId" element={<Study />} />

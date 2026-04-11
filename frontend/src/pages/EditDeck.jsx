@@ -97,15 +97,15 @@ function EditDeck() {
     }
   }
 
-  if (loading) return <div className="text-gray-400 text-sm">Loading...</div>;
+  if (loading) return <div className="text-stone-400 text-sm">Loading...</div>;
 
   return (
     <div className="max-w-xl">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Edit Deck</h1>
+        <h1 className="text-2xl font-semibold text-stone-900">Edit Deck</h1>
         <button
           onClick={() => navigate("/mydecks")}
-          className="text-sm text-gray-400 hover:text-gray-700 transition-colors"
+          className="text-sm text-stone-400 hover:text-stone-700 transition-colors"
         >
           ← Back
         </button>
@@ -130,7 +130,7 @@ function EditDeck() {
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full bg-gray-900 text-white rounded-lg py-2 text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
+        className="w-full bg-indigo-500 text-white rounded-lg py-2 text-sm font-medium hover:bg-indigo-600 transition-colors disabled:opacity-50"
       >
         {saving ? "Saving..." : "Save Changes"}
       </button>

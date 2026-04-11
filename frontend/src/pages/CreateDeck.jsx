@@ -77,7 +77,7 @@ function CreateDeck() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-8">Create Deck</h1>
+      <h1 className="text-2xl font-semibold text-stone-900 mb-8">Create Deck</h1>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg p-3 mb-6">
@@ -98,7 +98,7 @@ function CreateDeck() {
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full bg-gray-900 text-white rounded-lg py-2 text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
+        className="w-full bg-indigo-500 text-white rounded-lg py-2 text-sm font-medium hover:bg-indigo-600 transition-colors disabled:opacity-50"
       >
         {saving ? "Creating..." : "Create Deck"}
       </button>

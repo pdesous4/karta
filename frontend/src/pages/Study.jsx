@@ -37,10 +37,10 @@ const DEFAULT_TEMPLATE = {
 };
 
 const GRADES = [
-  { grade: 0, label: "Again", key: "1", color: "border-red-200 text-red-500 hover:bg-red-50" },
-  { grade: 1, label: "Hard",  key: "2", color: "border-orange-200 text-orange-500 hover:bg-orange-50" },
-  { grade: 2, label: "Good",  key: "3", color: "border-green-200 text-green-600 hover:bg-green-50" },
-  { grade: 3, label: "Easy",  key: "4", color: "border-blue-200 text-blue-500 hover:bg-blue-50" },
+  { grade: 0, label: "Again", key: "1", color: "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100" },
+  { grade: 1, label: "Hard",  key: "2", color: "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100" },
+  { grade: 2, label: "Good",  key: "3", color: "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" },
+  { grade: 3, label: "Easy",  key: "4", color: "bg-sky-50 border-sky-200 text-sky-600 hover:bg-sky-100" },
 ];
 
 function Study() {
@@ -182,7 +182,7 @@ function Study() {
 
   if (loading)
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
+      <div className="flex items-center justify-center h-64 text-stone-400 text-sm">
         Loading cards...
       </div>
     );
@@ -190,7 +190,7 @@ function Study() {
   if (!cards.length)
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <p className="text-gray-400">
+        <p className="text-stone-400">
           {mode === "review"
             ? "No studied cards yet — start a normal session first."
             : "Nothing to study right now — you're all caught up!"}
@@ -198,20 +198,20 @@ function Study() {
         {mode !== "review" && (
           <div className="flex gap-3">
             {noMoreNew ? (
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-stone-400">
                 No more new cards in this deck.
               </p>
             ) : (
               <button
                 onClick={handleStudyAnyway}
-                className="text-sm px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                className="text-sm px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
               >
                 Study anyway
               </button>
             )}
             <button
               onClick={() => navigate(`/study/${deckId}?mode=review`)}
-              className="text-sm px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+              className="text-sm px-4 py-2 border border-stone-200 text-stone-600 rounded-lg hover:bg-stone-50 transition-colors"
             >
               Review
             </button>
@@ -219,7 +219,7 @@ function Study() {
         )}
         <button
           onClick={() => navigate("/mydecks")}
-          className="text-sm text-gray-400 underline"
+          className="text-sm text-stone-400 underline"
         >
           Go back
         </button>
@@ -230,31 +230,31 @@ function Study() {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4 text-center">
         <div className="text-4xl">🎉</div>
-        <h2 className="text-2xl font-semibold text-gray-900">
+        <h2 className="text-2xl font-semibold text-stone-900">
           Session Complete
         </h2>
-        <p className="text-gray-400 text-sm">
+        <p className="text-stone-400 text-sm">
           {stats.correct} correct · {stats.wrong} missed · {stats.streak} streak
         </p>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-stone-400">
           {sessionInfo.due} reviews · {sessionInfo.new} new cards
         </p>
         <div className="flex gap-3 mt-4">
           <button
             onClick={handleStudyAnyway}
-            className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-stone-200 text-stone-600 rounded-lg text-sm font-medium hover:bg-stone-50 transition-colors"
           >
             Study More
           </button>
           <button
             onClick={() => navigate(`/study/${deckId}?mode=review`)}
-            className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-stone-200 text-stone-600 rounded-lg text-sm font-medium hover:bg-stone-50 transition-colors"
           >
             Review
           </button>
           <button
             onClick={() => navigate("/mydecks")}
-            className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
+            className="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-colors"
           >
             Back to Decks
           </button>
@@ -273,12 +273,12 @@ function Study() {
         {deck && (
           <button
             onClick={() => navigate("/mydecks")}
-            className="text-xs text-gray-400 hover:text-gray-600 self-start mb-1 transition-colors"
+            className="text-xs text-stone-400 hover:text-stone-600 self-start mb-1 transition-colors"
           >
             ← {deck.title}
           </button>
         )}
-        <div className="flex justify-between text-xs text-gray-400">
+        <div className="flex justify-between text-xs text-stone-400">
           <span>
             Card {idx + 1} of {cards.length}
           </span>
@@ -286,23 +286,23 @@ function Study() {
             {sessionInfo.due} reviews · {sessionInfo.new} new
           </span>
         </div>
-        <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+        <div className="w-full h-1 bg-stone-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gray-900 rounded-full transition-all duration-500"
+            className="h-full bg-indigo-500 rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
-      <div className="flex gap-6 text-sm items-center">
-        <span className="text-green-600 font-medium">✓ {stats.correct}</span>
-        <span className="text-red-500 font-medium">✗ {stats.wrong}</span>
-        <span className="text-blue-500 font-medium">⚡ {stats.streak}</span>
+      <div className="flex gap-5 text-sm items-center">
+        <span className="text-emerald-600 font-medium tabular-nums">✓ {stats.correct}</span>
+        <span className="text-rose-500 font-medium tabular-nums">✗ {stats.wrong}</span>
+        <span className="text-indigo-500 font-medium tabular-nums">⚡ {stats.streak}</span>
         {lastState && (
           <button
             onClick={handleUndo}
             title="Undo last grade (U)"
-            className="ml-2 text-xs text-gray-400 hover:text-gray-700 border border-gray-200 px-2 py-1 rounded transition-colors"
+            className="ml-1 text-xs text-stone-400 hover:text-stone-700 border border-stone-200 bg-white px-2.5 py-1 rounded-lg transition-colors"
           >
             ↩ Undo
           </button>
@@ -332,17 +332,17 @@ function Study() {
           }
         }}
       >
-        <div className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-8 flex flex-col items-center gap-4">
-          <span className="text-xs font-semibold tracking-widest uppercase text-gray-400">
+        <div className="w-full bg-white border border-stone-200 rounded-2xl p-10 flex flex-col items-center gap-4 shadow-sm">
+          <span className="text-xs font-semibold tracking-widest uppercase text-stone-400">
             {deck?.language || "Front"}
           </span>
 
-          <span className="text-3xl font-light text-gray-900 text-center">
+          <span className="text-5xl font-light text-stone-900 text-center tracking-tight leading-tight">
             {card.front}
           </span>
 
           {template.show_context && card.context && (
-            <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+            <span className="text-xs text-stone-400 bg-stone-100 px-3 py-1 rounded-full">
               {card.context}
             </span>
           )}
@@ -354,7 +354,7 @@ function Study() {
                   e.stopPropagation();
                   playAudio(card.audio_url);
                 }}
-                className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-sm"
+                className="w-9 h-9 rounded-full border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors text-sm"
               >
                 🔊
               </button>
@@ -364,7 +364,7 @@ function Study() {
                     e.stopPropagation();
                     playAudio(card.audio_slow_url);
                   }}
-                  className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-sm"
+                  className="w-9 h-9 rounded-full border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors text-sm"
                 >
                   🐢
                 </button>
@@ -373,46 +373,46 @@ function Study() {
           )}
 
           {!flipped && (
-            <span className="text-xs text-gray-300 mt-2">
-              tap · space · swipe up
+            <span className="text-xs text-stone-300 mt-4 select-none">
+              tap to reveal · space · swipe up
             </span>
           )}
 
           {flipped && (
-            <div className="w-full flex flex-col items-center gap-4 pt-4 border-t border-gray-200 mt-2">
-              <span className="text-xs font-semibold tracking-widest uppercase text-gray-400">
+            <div className="w-full flex flex-col items-center gap-4 pt-6 border-t border-stone-100 mt-2">
+              <span className="text-xs font-semibold tracking-widest uppercase text-stone-400">
                 Answer
               </span>
 
-              <span className="text-3xl font-light text-gray-900 text-center">
+              <span className="text-4xl font-light text-stone-900 text-center tracking-tight leading-tight">
                 {card.back}
               </span>
 
               {template.show_romanization && card.romanization && (
-                <span className="text-sm text-gray-400 italic">
+                <span className="text-sm text-stone-400 italic">
                   {card.romanization}
                 </span>
               )}
 
               {template.show_definition && card.definition && (
-                <div className="w-full border-t border-gray-100 pt-3 text-center">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
+                <div className="w-full border-t border-stone-100 pt-3 text-center">
+                  <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">
                     Definition
                   </p>
-                  <p className="text-sm text-gray-600">{card.definition}</p>
+                  <p className="text-sm text-stone-600">{card.definition}</p>
                 </div>
               )}
 
               {template.show_example && card.example && (
-                <div className="w-full border-t border-gray-100 pt-3 text-center">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
+                <div className="w-full border-t border-stone-100 pt-3 text-center">
+                  <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">
                     Example
                   </p>
-                  <p className="text-sm text-gray-600 italic">
+                  <p className="text-sm text-stone-600 italic">
                     "{card.example}"
                   </p>
                   {card.example_translation && (
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-stone-400 mt-1">
                       {card.example_translation}
                     </p>
                   )}
@@ -422,7 +422,7 @@ function Study() {
                         e.stopPropagation();
                         playAudio(card.example_audio_url);
                       }}
-                      className="mt-2 w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-xs mx-auto"
+                      className="mt-2 w-8 h-8 rounded-full border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors text-xs mx-auto"
                     >
                       🔊
                     </button>
@@ -434,7 +434,7 @@ function Study() {
                 <img
                   src={card.image_url}
                   alt={card.back}
-                  className="w-24 h-24 object-cover rounded-lg border border-gray-100"
+                  className="w-24 h-24 object-cover rounded-lg border border-stone-100"
                   onClick={(e) => e.stopPropagation()}
                 />
               )}
@@ -446,7 +446,7 @@ function Study() {
                       e.stopPropagation();
                       playAudio(card.audio_url);
                     }}
-                    className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-sm"
+                    className="w-9 h-9 rounded-full border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors text-sm"
                     title="Normal speed"
                   >
                     🔊
@@ -457,7 +457,7 @@ function Study() {
                         e.stopPropagation();
                         playAudio(card.audio_slow_url);
                       }}
-                      className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-sm"
+                      className="w-9 h-9 rounded-full border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors text-sm"
                       title="Slow speed"
                     >
                       🐢

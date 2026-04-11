@@ -1,48 +1,48 @@
 function DeckFormFields({ deckForm, onChange }) {
   return (
     <section className="flex flex-col gap-4 mb-10">
-      <h2 className="text-sm font-medium text-gray-700 uppercase tracking-wider">
+      <h2 className="text-sm font-medium text-stone-700 uppercase tracking-wider">
         Deck Details
       </h2>
       <div>
-        <label className="text-sm font-medium text-gray-700 block mb-1">
+        <label className="text-sm font-medium text-stone-700 block mb-1">
           Title
         </label>
         <input
           type="text"
           value={deckForm.title}
           onChange={(e) => onChange("title", e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
+          className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
           placeholder="e.g. Spanish Basics"
         />
       </div>
       <div>
-        <label className="text-sm font-medium text-gray-700 block mb-1">
+        <label className="text-sm font-medium text-stone-700 block mb-1">
           Language
         </label>
         <input
           type="text"
           value={deckForm.language}
           onChange={(e) => onChange("language", e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
+          className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
           placeholder="e.g. Spanish"
         />
       </div>
       <div>
-        <label className="text-sm font-medium text-gray-700 block mb-1">
+        <label className="text-sm font-medium text-stone-700 block mb-1">
           Description{" "}
-          <span className="text-gray-400 font-normal">(optional)</span>
+          <span className="text-stone-400 font-normal">(optional)</span>
         </label>
         <textarea
           value={deckForm.description}
           onChange={(e) => onChange("description", e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400 resize-none"
+          className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 resize-none"
           rows={3}
           placeholder="What is this deck about?"
         />
       </div>
       <div>
-        <label className="text-sm font-medium text-gray-700 block mb-1">
+        <label className="text-sm font-medium text-stone-700 block mb-1">
           New cards per day
         </label>
         <div className="flex items-center gap-3">
@@ -54,9 +54,9 @@ function DeckFormFields({ deckForm, onChange }) {
             onChange={(e) =>
               onChange("daily_new_cards", parseInt(e.target.value) || 1)
             }
-            className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
+            className="w-24 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
           />
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-stone-400">
             New cards introduced per study session
           </span>
         </div>
@@ -67,9 +67,9 @@ function DeckFormFields({ deckForm, onChange }) {
           id="is_public"
           checked={deckForm.is_public}
           onChange={(e) => onChange("is_public", e.target.checked)}
-          className="rounded"
+          className="rounded accent-indigo-500"
         />
-        <label htmlFor="is_public" className="text-sm text-gray-700">
+        <label htmlFor="is_public" className="text-sm text-stone-700">
           Make this deck public
         </label>
       </div>
