@@ -8,6 +8,7 @@ from services.srs import calculate_next_review
 from pydantic import BaseModel
 from datetime import datetime, timezone
 from models.card import Card
+from models.deck import Deck
 
 router = APIRouter(tags=["progress"])
 
@@ -99,9 +100,11 @@ def get_due_cards_by_deck(
     results = (
         db.query(Card.deck_id, func.count(Progress.id))
         .join(Progress, Progress.card_id == Card.id)
+        .join(Deck, Deck.id == Card.deck_id)
         .filter(
             Progress.user_id == current_user.id,
             Progress.due_at <= datetime.now(timezone.utc),
+            Deck.user_id == current_user.id,
         )
         .group_by(Card.deck_id)
         .all()
