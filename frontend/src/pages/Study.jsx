@@ -11,26 +11,84 @@ function shuffle(arr) {
   return a;
 }
 
-function calcNextInterval(grade, interval, easeFactor) {
-  if (grade === 0) return 1;
-  if (grade === 1) return Math.max(1, Math.floor(interval * 1.2));
-  if (grade === 2) return Math.max(1, Math.floor(interval * easeFactor));
-  if (grade === 3) return Math.max(1, Math.floor(interval * easeFactor * 1.3));
+const LEARNING_STEPS = [1, 10];   // minutes
+const RELEARNING_STEPS = [10];    // minutes
+const GRADUATING_INTERVAL = 1;    // days
+const EASY_INTERVAL = 4;          // days
+const EASY_BONUS = 1.3;
+const HARD_INTERVAL_FACTOR = 1.2;
+const LAPSE_MIN_INTERVAL = 1;     // days
+
+function hardStepDelay(steps, cur) {
+  if (steps.length === 1) return Math.min(steps[0] * 1.5, steps[0] + 1440);
+  if (cur === 0) return Math.round((steps[0] + steps[1]) / 2);
+  return steps[cur];
 }
 
-function fmtInterval(days) {
-  if (days < 2) return "1d";
-  if (days < 7) return `${days}d`;
-  if (days < 30) return `${Math.round(days / 7)}w`;
-  return `${Math.round(days / 30)}mo`;
+function previewInterval(grade, state, step, interval, ease) {
+  if (state === "new" || state === "learning") {
+    const steps = LEARNING_STEPS;
+    if (grade === 0) return { unit: "m", value: steps[0] };
+    if (grade === 1) {
+      const cur = state === "learning" ? Math.min(step, steps.length - 1) : 0;
+      return { unit: "m", value: hardStepDelay(steps, cur) };
+    }
+    if (grade === 2) {
+      const nxt = state === "learning" ? step + 1 : 1;
+      if (nxt >= steps.length) return { unit: "d", value: GRADUATING_INTERVAL };
+      return { unit: "m", value: steps[nxt] };
+    }
+    if (grade === 3) {
+      return { unit: "d", value: state === "new" ? GRADUATING_INTERVAL : EASY_INTERVAL };
+    }
+  }
+
+  if (state === "relearning") {
+    const steps = RELEARNING_STEPS;
+    if (steps.length === 0) return { unit: "d", value: Math.max(LAPSE_MIN_INTERVAL, interval) };
+    if (grade === 0) return { unit: "m", value: steps[0] };
+    if (grade === 1) {
+      const cur = Math.min(step, steps.length - 1);
+      return { unit: "m", value: hardStepDelay(steps, cur) };
+    }
+    if (grade === 2) {
+      const nxt = step + 1;
+      if (nxt >= steps.length) return { unit: "d", value: Math.max(LAPSE_MIN_INTERVAL, interval) };
+      return { unit: "m", value: steps[nxt] };
+    }
+    if (grade === 3) return { unit: "d", value: Math.max(EASY_INTERVAL, interval) };
+  }
+
+  // review
+  if (grade === 0) {
+    if (RELEARNING_STEPS.length === 0) return { unit: "d", value: LAPSE_MIN_INTERVAL };
+    return { unit: "m", value: RELEARNING_STEPS[0] };
+  }
+  const hardInt = Math.max(1, Math.floor(interval * HARD_INTERVAL_FACTOR));
+  const goodInt = Math.max(hardInt + 1, Math.floor(interval * ease));
+  const easyInt = Math.max(goodInt + 1, Math.floor(interval * ease * EASY_BONUS));
+  if (grade === 1) return { unit: "d", value: hardInt };
+  if (grade === 2) return { unit: "d", value: goodInt };
+  if (grade === 3) return { unit: "d", value: easyInt };
+}
+
+function fmtInterval({ unit, value }) {
+  if (unit === "m") {
+    if (value < 60) return `${value}m`;
+    return `${Math.round(value / 60)}h`;
+  }
+  if (value < 30) return `${value}d`;
+  if (value < 365) return `${Math.round(value / 30)}mo`;
+  return `${Math.round(value / 365)}y`;
 }
 
 const DEFAULT_TEMPLATE = {
+  show_hint: true,
   show_romanization: true,
   show_context: true,
   show_definition: false,
-  show_example: false,
   show_image: false,
+  show_example: false,
   front_audio: false,
   back_audio: true,
   back_audio_slow: true,
@@ -47,6 +105,7 @@ function Study() {
   const { deckId } = useParams();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get("mode") || "normal";
+  const backFirst = searchParams.get("back_first") === "1";
   const navigate = useNavigate();
 
   const [cards, setCards] = useState([]);
@@ -58,13 +117,15 @@ function Study() {
   const [sessionInfo, setSessionInfo] = useState({ due: 0, new: 0 });
   const [noMoreNew, setNoMoreNew] = useState(false);
   const [lastState, setLastState] = useState(null);
+  const [hintShown, setHintShown] = useState(false);
   const touchStart = useRef(null);
 
   useEffect(() => {
     Promise.all([getStudyCards(deckId, mode), getDeck(deckId)])
       .then(([studyRes, deckRes]) => {
         const { due, new: newCards } = studyRes.data;
-        setCards(shuffle([...due, ...newCards]));
+        const all = [...due, ...newCards];
+        setCards(deckRes.data.shuffle === false ? all : shuffle(all));
         setSessionInfo({ due: due.length, new: newCards.length });
         setDeck(deckRes.data);
       })
@@ -87,14 +148,15 @@ function Study() {
     }
   }, [idx, cards]);
 
-  // Auto-play audio when card is revealed
+  // Auto-play audio when the back (foreign word) is visible
   useEffect(() => {
-    if (!flipped || !cards[idx]) return;
+    if (!cards[idx]) return;
     const t = deck?.template || DEFAULT_TEMPLATE;
-    if (t.back_audio && cards[idx].audio_url) {
+    const backVisible = backFirst ? !flipped : flipped;
+    if (backVisible && t.back_audio && cards[idx].audio_url) {
       new Audio(cards[idx].audio_url).play().catch(() => {});
     }
-  }, [flipped, idx, deck]);
+  }, [flipped, idx, deck, backFirst]);
 
   const template = deck?.template || DEFAULT_TEMPLATE;
 
@@ -106,7 +168,8 @@ function Study() {
     getStudyCards(deckId, "force")
       .then((res) => {
         const { due, new: newCards } = res.data;
-        const all = shuffle([...due, ...newCards]);
+        const combined = [...due, ...newCards];
+        const all = deck?.shuffle === false ? combined : shuffle(combined);
         if (!all.length) {
           setNoMoreNew(true);
         } else {
@@ -153,6 +216,7 @@ function Study() {
       }
 
       setFlipped(false);
+      setHintShown(false);
       setIdx((prev) => prev + 1);
     },
     [flipped, cards, idx, stats],
@@ -264,8 +328,100 @@ function Study() {
 
   const card = cards[idx];
   const progress = Math.round((idx / cards.length) * 100);
+  const srsState = card.srs_state ?? "new";
+  const srsStep = card.srs_learning_step ?? 0;
   const srsInterval = card.srs_interval ?? 1;
   const srsFactor = card.srs_ease_factor ?? 2.5;
+
+  const renderFrontContent = (size) => (
+    <>
+      <span className={`${size} font-light text-stone-900 text-center tracking-tight leading-tight`}>
+        {card.front}
+      </span>
+      {template.show_context && card.context && (
+        <span className="text-xs text-stone-400 bg-stone-100 px-3 py-1 rounded-full">
+          {card.context}
+        </span>
+      )}
+    </>
+  );
+
+  const renderBackContent = (size) => (
+    <>
+      <span className={`${size} font-light text-stone-900 text-center tracking-tight leading-tight`}>
+        {card.back}
+      </span>
+      {template.show_romanization && card.romanization && (
+        <span className="text-sm text-stone-400 italic">{card.romanization}</span>
+      )}
+      {template.show_definition && card.definition && (
+        <div className="w-full border-t border-stone-100 pt-3 text-center">
+          <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+            Definition
+          </p>
+          <p className="text-sm text-stone-600">{card.definition}</p>
+        </div>
+      )}
+      {template.show_example && card.example && (
+        <div className="w-full border-t border-stone-100 pt-3 text-center">
+          <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+            Example
+          </p>
+          <p className="text-sm text-stone-600 italic">"{card.example}"</p>
+          {card.example_translation && (
+            <p className="text-xs text-stone-400 mt-1">
+              {card.example_translation}
+            </p>
+          )}
+          {card.example_audio_url && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                playAudio(card.example_audio_url);
+              }}
+              className="mt-2 w-8 h-8 rounded-full border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors text-xs mx-auto"
+            >
+              🔊
+            </button>
+          )}
+        </div>
+      )}
+      {template.show_image && card.image_url && (
+        <img
+          src={card.image_url}
+          alt={card.back}
+          className="w-24 h-24 object-cover rounded-lg border border-stone-100"
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
+      {template.back_audio && card.audio_url && (
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              playAudio(card.audio_url);
+            }}
+            className="w-9 h-9 rounded-full border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors text-sm"
+            title="Normal speed"
+          >
+            🔊
+          </button>
+          {template.back_audio_slow && card.audio_slow_url && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                playAudio(card.audio_slow_url);
+              }}
+              className="w-9 h-9 rounded-full border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors text-sm"
+              title="Slow speed"
+            >
+              🐢
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
 
   return (
     <div className="max-w-xl mx-auto flex flex-col items-center gap-8">
@@ -332,22 +488,60 @@ function Study() {
           }
         }}
       >
-        <div className="w-full bg-white border border-stone-200 rounded-2xl p-10 flex flex-col items-center gap-4 shadow-sm">
+        <div className="relative w-full bg-white border border-stone-200 rounded-2xl p-10 flex flex-col items-center gap-4 shadow-sm">
+          {srsState === "new" && (
+            <svg
+              viewBox="0 0 100 100"
+              className="absolute -top-4 -right-4 w-16 h-16 drop-shadow-md rotate-12 pointer-events-none"
+              aria-label="New card"
+            >
+              <polygon
+                points="50,2 60.1,12.3 74,8.4 77.6,22.4 91.6,26 87.7,39.9 98,50 87.7,60.1 91.6,74 77.6,77.6 74,91.6 60.1,87.7 50,98 39.9,87.7 26,91.6 22.4,77.6 8.4,74 12.3,60.1 2,50 12.3,39.9 8.4,26 22.4,22.4 26,8.4 39.9,12.3"
+                fill="#fbbf24"
+                stroke="#000"
+                strokeWidth="5"
+                strokeLinejoin="round"
+              />
+              <text
+                x="50"
+                y="61"
+                textAnchor="middle"
+                fontSize="26"
+                fontWeight="900"
+                fill="#000"
+                fontFamily="sans-serif"
+              >
+                NEW
+              </text>
+            </svg>
+          )}
           <span className="text-xs font-semibold tracking-widest uppercase text-stone-400">
-            {deck?.language || "Front"}
+            {backFirst ? (deck?.language || "Back") : (deck?.language || "Front")}
           </span>
 
-          <span className="text-5xl font-light text-stone-900 text-center tracking-tight leading-tight">
-            {card.front}
-          </span>
+          {backFirst
+            ? renderBackContent("text-5xl")
+            : renderFrontContent("text-5xl")}
 
-          {template.show_context && card.context && (
-            <span className="text-xs text-stone-400 bg-stone-100 px-3 py-1 rounded-full">
-              {card.context}
-            </span>
+          {template.show_hint && card.hint && !flipped && (
+            hintShown ? (
+              <span className="text-sm text-stone-500 italic text-center">
+                {card.hint}
+              </span>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setHintShown(true);
+                }}
+                className="text-xs text-stone-500 border border-stone-200 hover:bg-stone-50 px-3 py-1 rounded-full transition-colors"
+              >
+                💡 Show hint
+              </button>
+            )
           )}
 
-          {template.front_audio && card.audio_url && (
+          {!backFirst && template.front_audio && card.audio_url && (
             <div className="flex gap-2">
               <button
                 onClick={(e) => {
@@ -383,88 +577,9 @@ function Study() {
               <span className="text-xs font-semibold tracking-widest uppercase text-stone-400">
                 Answer
               </span>
-
-              <span className="text-4xl font-light text-stone-900 text-center tracking-tight leading-tight">
-                {card.back}
-              </span>
-
-              {template.show_romanization && card.romanization && (
-                <span className="text-sm text-stone-400 italic">
-                  {card.romanization}
-                </span>
-              )}
-
-              {template.show_definition && card.definition && (
-                <div className="w-full border-t border-stone-100 pt-3 text-center">
-                  <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">
-                    Definition
-                  </p>
-                  <p className="text-sm text-stone-600">{card.definition}</p>
-                </div>
-              )}
-
-              {template.show_example && card.example && (
-                <div className="w-full border-t border-stone-100 pt-3 text-center">
-                  <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">
-                    Example
-                  </p>
-                  <p className="text-sm text-stone-600 italic">
-                    "{card.example}"
-                  </p>
-                  {card.example_translation && (
-                    <p className="text-xs text-stone-400 mt-1">
-                      {card.example_translation}
-                    </p>
-                  )}
-                  {card.example_audio_url && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        playAudio(card.example_audio_url);
-                      }}
-                      className="mt-2 w-8 h-8 rounded-full border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors text-xs mx-auto"
-                    >
-                      🔊
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {template.show_image && card.image_url && (
-                <img
-                  src={card.image_url}
-                  alt={card.back}
-                  className="w-24 h-24 object-cover rounded-lg border border-stone-100"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              )}
-
-              {template.back_audio && card.audio_url && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      playAudio(card.audio_url);
-                    }}
-                    className="w-9 h-9 rounded-full border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors text-sm"
-                    title="Normal speed"
-                  >
-                    🔊
-                  </button>
-                  {template.back_audio_slow && card.audio_slow_url && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        playAudio(card.audio_slow_url);
-                      }}
-                      className="w-9 h-9 rounded-full border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors text-sm"
-                      title="Slow speed"
-                    >
-                      🐢
-                    </button>
-                  )}
-                </div>
-              )}
+              {backFirst
+                ? renderFrontContent("text-4xl")
+                : renderBackContent("text-4xl")}
             </div>
           )}
         </div>
@@ -481,7 +596,7 @@ function Study() {
           >
             <span>{label}</span>
             <span className="text-xs opacity-50">
-              {fmtInterval(calcNextInterval(grade, srsInterval, srsFactor))} · {key}
+              {fmtInterval(previewInterval(grade, srsState, srsStep, srsInterval, srsFactor))} · {key}
             </span>
           </button>
         ))}

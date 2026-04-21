@@ -19,6 +19,7 @@ class DeckCreate(BaseModel):
     is_public:        bool           = False
     template:         Optional[dict] = None
     daily_new_cards:  int            = 10
+    shuffle:          bool           = True
 
 
 class DeckUpdate(BaseModel):
@@ -28,6 +29,7 @@ class DeckUpdate(BaseModel):
     is_public:        Optional[bool] = None
     template:         Optional[dict] = None
     daily_new_cards:  Optional[int]  = None
+    shuffle:          Optional[bool] = None
 
 
 @router.get("/")
@@ -67,6 +69,7 @@ def create_deck(
         is_public        = body.is_public,
         template         = body.template or DEFAULT_TEMPLATE,
         daily_new_cards  = body.daily_new_cards,
+        shuffle          = body.shuffle,
     )
     db.add(deck)
     db.commit()

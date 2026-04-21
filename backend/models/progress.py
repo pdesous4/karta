@@ -11,9 +11,11 @@ class Progress(Base):
     correct = Column(Integer, nullable=False, default=0)
     wrong = Column(Integer, nullable=False, default=0)
     last_grade = Column(Integer, nullable=True)
-    ease_factor = Column(Float, nullable=False, default=2.5)  # Default ease factor for SM-2 algorithm
-    interval = Column(Integer, nullable=False, default=1)  # Interval in days
-    streak = Column(Integer, nullable=False, default=0)  # Current streak of correct answers
+    ease_factor = Column(Float, nullable=False, default=2.5)
+    interval = Column(Integer, nullable=False, default=1)
+    streak = Column(Integer, nullable=False, default=0)
+    state = Column(String, nullable=False, default="new")  # new | learning | review | relearning
+    learning_step = Column(Integer, nullable=False, default=0)
     due_at = Column(DateTime(timezone=True), nullable=False)
     last_reviewed = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

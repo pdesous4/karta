@@ -1,5 +1,10 @@
 const TEMPLATE_FIELDS = [
   {
+    key: "show_hint",
+    label: "Hint",
+    desc: "Reveal a hint on the front before flipping",
+  },
+  {
     key: "show_romanization",
     label: "Romanization",
     desc: "Pronunciation guide",

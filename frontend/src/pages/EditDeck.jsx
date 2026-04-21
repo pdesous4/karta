@@ -24,6 +24,7 @@ function EditDeck() {
     language: "",
     is_public: false,
     daily_new_cards: 10,
+    shuffle: true,
   });
   const [template, setTemplate] = useState({});
   const [cards, setCards] = useState([]);
@@ -38,6 +39,7 @@ function EditDeck() {
           language: d.language,
           is_public: d.is_public,
           daily_new_cards: d.daily_new_cards || 10,
+          shuffle: d.shuffle ?? true,
         });
         setTemplate(d.template || {});
         setCards(cardsRes.data);

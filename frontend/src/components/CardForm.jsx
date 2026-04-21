@@ -101,6 +101,19 @@ function CardForm({ card, index, onChange, onRemove, language }) {
         />
       </div>
 
+      <div>
+        <label className="text-xs text-stone-500 block mb-1">
+          Hint <span className="text-stone-300">(optional)</span>
+        </label>
+        <input
+          type="text"
+          value={card.hint || ""}
+          onChange={(e) => onChange("hint", e.target.value)}
+          className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+          placeholder="Shown on front when revealed"
+        />
+      </div>
+
       <button
         onClick={() => setExpanded((p) => !p)}
         className="text-xs text-stone-400 hover:text-stone-600 text-left flex items-center gap-1"

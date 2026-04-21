@@ -5,6 +5,7 @@ import CardForm from "./CardForm";
 export const EMPTY_CARD = {
   front: "",
   back: "",
+  hint: "",
   romanization: "",
   context: "",
   definition: "",

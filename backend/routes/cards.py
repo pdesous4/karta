@@ -9,13 +9,15 @@ from models.user import User
 from dependencies import get_current_user
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta
+from services.srs import LEARN_AHEAD_MINUTES
 
 router = APIRouter(tags=["cards"])
 
 class CardCreate(BaseModel):
     front:               str
     back:                str
+    hint:                Optional[str] = None
     romanization:        Optional[str] = None
     context:             Optional[str] = None
     definition:          Optional[str] = None
@@ -31,6 +33,7 @@ class CardCreate(BaseModel):
 class CardUpdate(BaseModel):
     front:               Optional[str] = None
     back:                Optional[str] = None
+    hint:                Optional[str] = None
     romanization:        Optional[str] = None
     context:             Optional[str] = None
     definition:          Optional[str] = None
@@ -53,8 +56,16 @@ def get_cards(deck_id: str, db: Session = Depends(get_db)):
 
 def _card_with_srs(card, progress=None):
     d = {c.name: getattr(card, c.name) for c in card.__table__.columns}
-    d["srs_interval"] = progress.interval if progress else 1
-    d["srs_ease_factor"] = progress.ease_factor if progress else 2.5
+    if progress:
+        d["srs_state"]         = progress.state or "review"
+        d["srs_learning_step"] = progress.learning_step or 0
+        d["srs_interval"]      = progress.interval or 1
+        d["srs_ease_factor"]   = progress.ease_factor or 2.5
+    else:
+        d["srs_state"]         = "new"
+        d["srs_learning_step"] = 0
+        d["srs_interval"]      = 1
+        d["srs_ease_factor"]   = 2.5
     return d
 
 
@@ -90,7 +101,14 @@ def get_study_cards(
         }
 
     now = datetime.now(timezone.utc)
-    due_card_ids = {p.card_id for p in progress_records if p.due_at <= now}
+    # Anki "learn ahead": learning/relearning cards within 20 min are also eligible.
+    learn_ahead_cutoff = now + timedelta(minutes=LEARN_AHEAD_MINUTES)
+    due_card_ids = set()
+    for p in progress_records:
+        if p.due_at <= now:
+            due_card_ids.add(p.card_id)
+        elif p.due_at <= learn_ahead_cutoff and p.state in ("learning", "relearning"):
+            due_card_ids.add(p.card_id)
     due_cards = [c for c in all_cards if c.id in due_card_ids]
 
     new_cards_all = [c for c in all_cards if c.id not in seen_card_ids]

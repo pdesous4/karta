@@ -64,6 +64,18 @@ function DeckFormFields({ deckForm, onChange }) {
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
+          id="shuffle"
+          checked={deckForm.shuffle ?? true}
+          onChange={(e) => onChange("shuffle", e.target.checked)}
+          className="rounded accent-indigo-500"
+        />
+        <label htmlFor="shuffle" className="text-sm text-stone-700">
+          Shuffle cards during study
+        </label>
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
           id="is_public"
           checked={deckForm.is_public}
           onChange={(e) => onChange("is_public", e.target.checked)}

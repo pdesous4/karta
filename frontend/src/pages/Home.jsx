@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { deleteDeck } from "../lib/api";
 import useStore from "../store/index";
+import ReviewButton from "../components/ReviewButton";
 
 function Home() {
   const { user, decks, dueCounts, loadDecks, removeDeck } = useStore();
@@ -100,12 +101,7 @@ function Home() {
                   >
                     Study
                   </Link>
-                  <Link
-                    to={`/study/${deck.id}?mode=review`}
-                    className="text-sm px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors"
-                  >
-                    Review
-                  </Link>
+                  <ReviewButton deckId={deck.id} />
                   <Link
                     to={`/edit/${deck.id}`}
                     className="text-sm px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors"

@@ -5,6 +5,7 @@ from database import Base
 import uuid
 
 DEFAULT_TEMPLATE = {
+    "show_hint":           True,
     "show_romanization":   True,
     "show_context":        True,
     "show_definition":     False,
@@ -26,5 +27,6 @@ class Deck(Base):
     is_public        = Column(Boolean, default=False)
     template         = Column(JSONB, default=DEFAULT_TEMPLATE)
     daily_new_cards  = Column(Integer, default=10, nullable=False)
+    shuffle          = Column(Boolean, default=True, nullable=False)
     created_at       = Column(DateTime(timezone=True), server_default=func.now())
     updated_at       = Column(DateTime(timezone=True), onupdate=func.now())

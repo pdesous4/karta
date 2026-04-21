@@ -95,10 +95,10 @@ async def generate_tts(text, language, slow=False):
         except Exception as e:
             print(f"[TTS] ElevenLabs failed, falling back to Edge: {e}")
 
-    rate = "-40%" if slow else "+0%"
-    audio = await generate_tts_edge(text, language, rate=rate)
-    print(f"[TTS] Edge ({'slow' if slow else 'normal'}) — {language}: {text[:30]}")
-    return audio
+    # rate = "-40%" if slow else "+0%"
+    # audio = await generate_tts_edge(text, language, rate=rate)
+    # print(f"[TTS] Edge ({'slow' if slow else 'normal'}) — {language}: {text[:30]}")
+    # return audio
 
 
 def upload_audio(audio_data, path):

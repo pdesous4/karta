@@ -11,6 +11,7 @@ class Card(Base):
     deck_id             = Column(String, ForeignKey("decks.id"), nullable=False, index=True)
     front               = Column(String, nullable=False)
     back                = Column(String, nullable=False)
+    hint                = Column(String, nullable=True)
     romanization        = Column(String, nullable=True)
     context             = Column(String, nullable=True)
     definition          = Column(String, nullable=True)

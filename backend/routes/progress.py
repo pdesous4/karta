@@ -41,12 +41,16 @@ def update_progress(
             streak=0,
             ease_factor=2.5,
             interval=1,
+            state="new",
+            learning_step=0,
             due_at=datetime.now(timezone.utc),
         )
         db.add(progress)
 
     next_review = calculate_next_review(
         grade=body.grade,
+        state=progress.state,
+        learning_step=progress.learning_step,
         interval=progress.interval,
         ease_factor=progress.ease_factor,
     )
@@ -58,10 +62,12 @@ def update_progress(
         progress.correct += 1
         progress.streak  += 1
 
-    progress.interval    = next_review["interval"]
-    progress.ease_factor = next_review["ease_factor"]
-    progress.due_at      = next_review["due_at"]
-    progress.last_grade  = body.grade
+    progress.state         = next_review["state"]
+    progress.learning_step = next_review["learning_step"]
+    progress.interval      = next_review["interval"]
+    progress.ease_factor   = next_review["ease_factor"]
+    progress.due_at        = next_review["due_at"]
+    progress.last_grade    = body.grade
 
     db.commit()
     return progress
